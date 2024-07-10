@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-10T12:19:39.000Z</updated>
+  <updated>2024-07-10T12:34:57.000Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>对象绑定与类型转换</title>
+    <link href="https://erdong27.github.io/2024/07/10/%E5%AF%B9%E8%B1%A1%E7%BB%91%E5%AE%9A%E4%B8%8E%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"/>
+    <id>https://erdong27.github.io/2024/07/10/%E5%AF%B9%E8%B1%A1%E7%BB%91%E5%AE%9A%E4%B8%8E%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/</id>
+    <published>2024-07-10T12:34:57.000Z</published>
+    <updated>2024-07-10T12:34:57.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot;</summary>
+        
+      
+    
+    
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
+    
+    <category term="SpringWeb" scheme="https://erdong27.github.io/tags/SpringWeb/"/>
+    
+  </entry>
   
   <entry>
     <title>获取方法参数名</title>
@@ -191,9 +219,9 @@
     
     
     
-    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
     
   </entry>
   
