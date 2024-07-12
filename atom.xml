@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-12T03:27:32.000Z</updated>
+  <updated>2024-07-12T14:41:21.000Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SpringBoot自动配置</title>
+    <link href="https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/"/>
+    <id>https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/</id>
+    <published>2024-07-12T14:41:21.000Z</published>
+    <updated>2024-07-12T14:41:21.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;通过-Import-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-Configuration&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
+    
+    <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
+    
+  </entry>
   
   <entry>
     <title>Tomcat内嵌容器</title>
@@ -37,9 +66,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
@@ -66,9 +95,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
@@ -280,9 +309,9 @@
     
     
     
-    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
     
   </entry>
   
