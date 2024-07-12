@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-12T03:27:03.387Z</updated>
+  <updated>2024-07-12T03:27:32.000Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -17,11 +17,11 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title></title>
+    <title>Tomcat内嵌容器</title>
     <link href="https://erdong27.github.io/2024/07/12/Tomcat%E5%86%85%E5%B5%8C%E5%AE%B9%E5%99%A8/"/>
     <id>https://erdong27.github.io/2024/07/12/Tomcat%E5%86%85%E5%B5%8C%E5%AE%B9%E5%99%A8/</id>
-    <published>2024-07-12T03:27:03.386Z</published>
-    <updated>2024-07-12T03:27:03.387Z</updated>
+    <published>2024-07-12T03:27:32.000Z</published>
+    <updated>2024-07-12T03:27:32.000Z</updated>
     
     
       
@@ -34,6 +34,14 @@
     
     
     
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
   </entry>
   
