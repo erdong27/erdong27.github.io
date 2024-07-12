@@ -17,9 +17,9 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>Tomcat异常处理</title>
-    <link href="https://erdong27.github.io/2024/07/11/Tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/"/>
-    <id>https://erdong27.github.io/2024/07/11/Tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/</id>
+    <title>tomcat异常处理</title>
+    <link href="https://erdong27.github.io/2024/07/11/tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/"/>
+    <id>https://erdong27.github.io/2024/07/11/tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/</id>
     <published>2024-07-11T15:52:44.000Z</published>
     <updated>2024-07-11T15:52:44.000Z</updated>
     
@@ -57,8 +57,9 @@
       
         
         
-    <summary type="html">&lt;p&gt;&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
-&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot;</summary>
+    <summary type="html">&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
+
+&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot; class=&quot;headerlink&quot;</summary>
         
       
     
@@ -110,7 +111,8 @@
       
         
         
-    <summary type="html">&lt;p&gt;&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+    <summary type="html">&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
+
 &lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td</summary>
         
       
@@ -190,8 +192,9 @@
       
         
         
-    <summary type="html">&lt;p&gt;&lt;img src=&quot;d9b621177848d14c0e4bf4f6db7bb8bd.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;39aa9a6b5c957be71fa161e839493de5.png&quot;</summary>
+    <summary type="html">&lt;img src=&quot;d9b621177848d14c0e4bf4f6db7bb8bd.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
+
+&lt;img src=&quot;39aa9a6b5c957be71fa161e839493de5.png&quot; alt=&quot;截图&quot;</summary>
         
       
     
