@@ -37,9 +37,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
-    
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
     
     <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
     
@@ -66,11 +66,11 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
   </entry>
   
@@ -97,9 +97,9 @@
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
   </entry>
   
@@ -309,9 +309,9 @@
     
     
     
-    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
     
   </entry>
   
