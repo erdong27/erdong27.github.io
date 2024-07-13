@@ -44,6 +44,37 @@
   </entry>
   
   <entry>
+    <title>事件监听器与发布器</title>
+    <link href="https://erdong27.github.io/2024/07/13/%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E%E5%8F%91%E5%B8%83%E5%99%A8/"/>
+    <id>https://erdong27.github.io/2024/07/13/%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E%E5%8F%91%E5%B8%83%E5%99%A8/</id>
+    <published>2024-07-13T01:32:26.000Z</published>
+    <updated>2024-07-13T01:32:26.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;实现ApplicationListener接口&quot;&gt;&lt;a href=&quot;#实现ApplicationListener接口&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="ApplicationListener" scheme="https://erdong27.github.io/tags/ApplicationListener/"/>
+    
+    <category term="EventListener" scheme="https://erdong27.github.io/tags/EventListener/"/>
+    
+  </entry>
+  
+  <entry>
     <title>SpringBoot自动配置</title>
     <link href="https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/"/>
     <id>https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/</id>
@@ -124,9 +155,9 @@
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
   </entry>
   
@@ -336,9 +367,9 @@
     
     
     
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
     <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
   </entry>
   
