@@ -89,9 +89,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="ApplicationListener" scheme="https://erdong27.github.io/tags/ApplicationListener/"/>
     
@@ -111,7 +111,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;通过-Import-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-Configuration&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;h1 id=&quot;通过-Import-amp-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-amp-Configuration&quot; class=&quot;headerlink&quot;</summary>
         
       
     
@@ -140,7 +140,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;img</summary>
+    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;p&gt;&lt;img</summary>
         
       
     
@@ -149,9 +149,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
     
@@ -198,9 +198,8 @@
       
         
         
-    <summary type="html">&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
-&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot;</summary>
         
       
     
@@ -252,8 +251,7 @@
       
         
         
-    <summary type="html">&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
 &lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td</summary>
         
       
@@ -333,9 +331,8 @@
       
         
         
-    <summary type="html">&lt;img src=&quot;d9b621177848d14c0e4bf4f6db7bb8bd.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
-&lt;img src=&quot;39aa9a6b5c957be71fa161e839493de5.png&quot; alt=&quot;截图&quot;</summary>
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;d9b621177848d14c0e4bf4f6db7bb8bd.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;39aa9a6b5c957be71fa161e839493de5.png&quot;</summary>
         
       
     
