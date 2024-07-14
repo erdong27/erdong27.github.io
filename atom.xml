@@ -89,9 +89,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
     <category term="ApplicationListener" scheme="https://erdong27.github.io/tags/ApplicationListener/"/>
     
@@ -149,11 +149,11 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
   </entry>
   
