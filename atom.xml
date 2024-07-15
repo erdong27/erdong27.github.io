@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-15T15:07:48.122Z</updated>
+  <updated>2024-07-15T15:08:13.000Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -17,23 +17,31 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title></title>
+    <title>CGLIB原理</title>
     <link href="https://erdong27.github.io/2024/07/15/cglib%E5%8E%9F%E7%90%86/"/>
     <id>https://erdong27.github.io/2024/07/15/cglib%E5%8E%9F%E7%90%86/</id>
-    <published>2024-07-15T15:07:48.122Z</published>
-    <updated>2024-07-15T15:07:48.122Z</updated>
+    <published>2024-07-15T15:08:13.000Z</published>
+    <updated>2024-07-15T15:08:13.000Z</updated>
     
     
       
       
         
         
-    <summary type="html">&lt;h1 id=&quot;cglib代理原理-MethodProxy&quot;&gt;&lt;a href=&quot;#cglib代理原理-MethodProxy&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;h1 id=&quot;CGLIB代理原理-MethodProxy&quot;&gt;&lt;a href=&quot;#CGLIB代理原理-MethodProxy&quot; class=&quot;headerlink&quot;</summary>
         
       
     
     
     
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="SpringAop" scheme="https://erdong27.github.io/tags/SpringAop/"/>
+    
+    <category term="CGLIB" scheme="https://erdong27.github.io/tags/CGLIB/"/>
+    
+    <category term="代理" scheme="https://erdong27.github.io/tags/%E4%BB%A3%E7%90%86/"/>
     
   </entry>
   
@@ -141,9 +149,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
-    
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
     
     <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
     
