@@ -236,9 +236,9 @@
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
   </entry>
   
@@ -321,9 +321,9 @@
     <category term="ApplicaionContext" scheme="https://erdong27.github.io/categories/BeanFactory/ApplicaionContext/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
   </entry>
   
