@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-17T11:40:54.000Z</updated>
+  <updated>2024-07-19T15:13:28.000Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>vite配置环境变量</title>
+    <link href="https://erdong27.github.io/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/"/>
+    <id>https://erdong27.github.io/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/</id>
+    <published>2024-07-19T15:13:28.000Z</published>
+    <updated>2024-07-19T15:13:28.000Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt; .env.prodution&lt;/code&gt;两个文件 分别为开发环境和生产环境(必须以&lt;code&gt;.env.&lt;/code&gt;开头)&lt;/p&gt;
+&lt;img</summary>
+        
+      
+    
+    
+    
+    <category term="VUE" scheme="https://erdong27.github.io/categories/VUE/"/>
+    
+    
+    <category term="VITE" scheme="https://erdong27.github.io/tags/VITE/"/>
+    
+    <category term="VUE" scheme="https://erdong27.github.io/tags/VUE/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis网络模型</title>
