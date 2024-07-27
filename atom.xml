@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-25T15:05:00.000Z</updated>
+  <updated>2024-07-27T01:00:50.368Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -21,10 +21,10 @@
     <link href="https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/"/>
     <id>https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/</id>
     <published>2024-07-25T15:05:00.000Z</published>
-    <updated>2024-07-25T15:05:00.000Z</updated>
+    <updated>2024-07-27T01:00:50.368Z</updated>
     
     
-    <summary type="html">Lambda表达式函数式编程</summary>
+    <summary type="html">Java 中的闭包与柯里化，浅析`Lambda` 表达式的执行原理。</summary>
     
     
     
@@ -381,9 +381,9 @@
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
   </entry>
   
