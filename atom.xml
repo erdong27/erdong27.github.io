@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-27T01:02:25.952Z</updated>
+  <updated>2024-07-30T02:24:14.031Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -17,11 +17,30 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Configuration与Configurable的比较</title>
+    <link href="https://erdong27.github.io/2024/07/30/Configuration%E4%B8%8EConfigurable%E7%9A%84%E6%AF%94%E8%BE%83/"/>
+    <id>https://erdong27.github.io/2024/07/30/Configuration%E4%B8%8EConfigurable%E7%9A%84%E6%AF%94%E8%BE%83/</id>
+    <published>2024-07-30T02:17:11.000Z</published>
+    <updated>2024-07-30T02:24:14.031Z</updated>
+    
+    
+    <summary type="html">Configuration与Configurable的比较</summary>
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Lambda表达式函数式编程</title>
     <link href="https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/"/>
     <id>https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/</id>
     <published>2024-07-25T15:05:00.000Z</published>
-    <updated>2024-07-27T01:02:25.952Z</updated>
+    <updated>2024-07-27T07:37:40.166Z</updated>
     
     
     <summary type="html">Java 中的闭包与柯里化，浅析Lambda 表达式的执行原理。</summary>
@@ -346,9 +365,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
-    
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
+    
+    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
     
     <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
     
@@ -406,9 +425,9 @@
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
+    
+    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
   </entry>
   
@@ -489,9 +508,9 @@
     <category term="ApplicaionContext" scheme="https://erdong27.github.io/categories/BeanFactory/ApplicaionContext/"/>
     
     
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
   </entry>
   
@@ -542,32 +561,6 @@
     
     
     <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>位运算符号</title>
-    <link href="https://erdong27.github.io/2024/07/10/%E4%BD%8D%E8%BF%90%E7%AE%97%E7%AC%A6%E5%8F%B7/"/>
-    <id>https://erdong27.github.io/2024/07/10/%E4%BD%8D%E8%BF%90%E7%AE%97%E7%AC%A6%E5%8F%B7/</id>
-    <published>2024-07-10T05:41:38.000Z</published>
-    <updated>2024-07-10T07:59:41.979Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;p&gt;&lt;img src=&quot;d9b621177848d14c0e4bf4f6db7bb8bd.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;39aa9a6b5c957be71fa161e839493de5.png&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="位运算" scheme="https://erdong27.github.io/categories/%E4%BD%8D%E8%BF%90%E7%AE%97/"/>
-    
-    
-    <category term="计算机基础" scheme="https://erdong27.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/"/>
     
   </entry>
   
