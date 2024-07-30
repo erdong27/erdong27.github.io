@@ -1,0 +1,247 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>@Component与@Configuration区别 | erdong</title><meta name="author" content="erdong"><meta name="copyright" content="erdong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="@Component与@Configuration区别">
+<meta property="og:type" content="article">
+<meta property="og:title" content="@Component与@Configuration区别">
+<meta property="og:url" content="https://erdong27.github.io/2024/07/30/@Component%E4%B8%8E@Configuration%E5%8C%BA%E5%88%AB/index.html">
+<meta property="og:site_name" content="erdong">
+<meta property="og:description" content="@Component与@Configuration区别">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp">
+<meta property="article:published_time" content="2024-07-30T07:11:06.000Z">
+<meta property="article:modified_time" content="2024-07-30T07:25:58.700Z">
+<meta property="article:author" content="erdong">
+<meta property="article:tag" content="Spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://erdong27.github.io/2024/07/30/@Component%E4%B8%8E@Configuration%E5%8C%BA%E5%88%AB/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=4.13.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script async="async" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><script>(adsbygoogle = window.adsbygoogle || []).push({
+  google_ad_client: '',
+  enable_page_level_ads: 'true'
+});</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?https://hm.baidu.com/hm.js?c214fc494c49ae12dfd201bdc3bb1b29";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  noticeOutdate: {"limitDay":500,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.11.1/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '@Component与@Configuration区别',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-07-30 15:25:58'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="erdong" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+  window.addEventListener('load',() => { preloader.endLoading() })
+
+  if (false) {
+    document.addEventListener('pjax:send', () => { preloader.initLoading() })
+    document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+  }
+})()</script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">23</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url('https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp')"><nav id="nav"><span id="blog-info"><a href="/" title="erdong"><span class="site-name">erdong</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">@Component与@Configuration区别</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-07-30T07:11:06.000Z" title="发表于 2024-07-30 15:11:06">2024-07-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-07-30T07:25:58.700Z" title="更新于 2024-07-30 15:25:58">2024-07-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Java/">Java</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">972</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="@Component与@Configuration区别"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="Component与Configuration"><a href="#Component与Configuration" class="headerlink" title="Component与Configuration"></a>Component与Configuration</h1><ul>
+<li><p>注解<code>Component</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(&#123;ElementType.TYPE&#125;)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Indexed</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Component &#123;</span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>注解<code>Configuration</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(&#123;ElementType.TYPE&#125;)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Configuration &#123;</span><br><span class="line">    <span class="meta">@AliasFor(</span></span><br><span class="line"><span class="meta">        annotation = Component.class</span></span><br><span class="line"><span class="meta">    )</span></span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">proxyBeanMethods</span><span class="params">()</span> <span class="keyword">default</span> <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">enforceUniqueMethods</span><span class="params">()</span> <span class="keyword">default</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>可以看<code>@Component</code>是<code>Configuration</code>的元注解，@Configuration多了两个方法<code>proxyBeanMethods</code>和<code>enforceUniqueMethods</code></p>
+<p><code>proxyBeanMethods</code>：</p>
+<img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.64dragv3bs.webp" alt="image" style="zoom:50%;" />
+
+<p>第一段：指定是否应该对@Bean方法进行代理，以强制执行bean生命周期行为，例如即使在用户代码中直接调用@Bean方法时也要返回共享的单例bean实例。这个特性需要方法拦截，通过运行时生成的CGLIB子类来实现，这带有一些限制，比如配置类及其方法不允许声明为final。</p>
+<p>第二段：默认值是true，允许在配置类内部通过直接方法调用实现“bean之间的引用”，以及允许从外部调用此配置的@Bean方法，例如从另一个配置类中调用。如果不需要这样做，因为每个特定的配置的@Bean方法是自包含的，并且被设计为容器使用的简单工厂方法，可以将这个标志切换为false，以避免CGLIB子类处理。</p>
+<p>第三段：关闭bean方法拦截有效处理<code>@Bean</code> 单独的方法就像在非<code>@Configuration</code>类上声明时一样， 又名“@Bean Lite 模式”（请参阅<a target="_blank" rel="noopener" href="https://docs.spring.io/spring-framework/docs/6.1.11/javadoc-api/org/springframework/context/annotation/Bean.html">​​@Bean 的 javadoc</a>）。因此是 行为上相当于删除<code>@Configuration</code>构造型。</p>
+<p>代码示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.AnnotationConfigApplicationContext;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Configuration;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FullConfig</span> &#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> A1 <span class="title function_">a1</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">A1</span> <span class="variable">a1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A1</span>();</span><br><span class="line">        <span class="type">A2</span> <span class="variable">a2</span> <span class="operator">=</span> a2();</span><br><span class="line">        System.out.println(<span class="string">&quot;a1() 中A2 hasCode:&quot;</span>+a2.hashCode());</span><br><span class="line">        <span class="keyword">return</span> a1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span>  A2 <span class="title function_">a2</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">A2</span> <span class="variable">a2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A2</span>();</span><br><span class="line">        System.out.println(<span class="string">&quot;a2() 中A2 hasCode:&quot;</span>+a2.hashCode());</span><br><span class="line">        <span class="keyword">return</span> a2;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span>  <span class="keyword">class</span> <span class="title class_">A1</span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">A2</span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">AnnotationConfigApplicationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AnnotationConfigApplicationContext</span>(FullConfig.class);</span><br><span class="line">        <span class="type">FullConfig</span> <span class="variable">fullConfig</span> <span class="operator">=</span> context.getBean(FullConfig.class);</span><br><span class="line">        <span class="comment">//此处输出为xxxx.FullConfig$$SpringCGLIB$$0 说明在spring容器中管理的是代理类</span></span><br><span class="line">        System.out.println(fullConfig.getClass());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>enforceUniqueMethods</code></p>
+<img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.8z6fg9ah2w.webp" alt="image" style="zoom:50%;" />
+
+<p>第一段：指定<code>@Bean</code>方法是否需要有唯一的方法名称， 否则引发异常，以防止意外超载。</p>
+<p>第二段：默认值为<code>true</code>，防止意外的方法重载 被解释为相同 bean 定义的重载工厂方法 （与具有单独条件等的单独 bean 定义相反）。 将此标志切换为<code>false</code>以允许方法重载 根据这些语义，接受意外重叠的风险。</p>
+<p>代码示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.AnnotationConfigApplicationContext;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Configuration;</span><br><span class="line"><span class="comment">//enforceUniqueMethods = false 这个值为false 下面的A1就可以进行重载操作，如果是默认值true下面的代码会报错</span></span><br><span class="line"><span class="meta">@Configuration(enforceUniqueMethods = false)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FullConfig</span> &#123;</span><br><span class="line">  </span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> A1 <span class="title function_">a1</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">A1</span> <span class="variable">a1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A1</span>();</span><br><span class="line">        <span class="type">A2</span> <span class="variable">a2</span> <span class="operator">=</span> a2();</span><br><span class="line">        System.out.println(<span class="string">&quot;a1() 中A2 hasCode:&quot;</span>+a2.hashCode());</span><br><span class="line">        <span class="keyword">return</span> a1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> A1 <span class="title function_">a1</span><span class="params">(A2 a2)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;a2() 中A2 hasCode:&quot;</span>+a2.hashCode());</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">A1</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> A2 <span class="title function_">a2</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">A2</span> <span class="variable">a2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A2</span>();</span><br><span class="line">        System.out.println(<span class="string">&quot;a2() 中A2 hasCode:&quot;</span>+a2.hashCode());</span><br><span class="line">        <span class="keyword">return</span> a2;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span>  <span class="keyword">class</span> <span class="title class_">A1</span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">A2</span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">AnnotationConfigApplicationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AnnotationConfigApplicationContext</span>(FullConfig.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="两种模式"><a href="#两种模式" class="headerlink" title="两种模式"></a>两种模式</h1><ul>
+<li>Full模式<ul>
+<li>@Configuration 注解与 @Bean 注解联合使用，且 不添加任何额外属性 时，即为 Full 模式。</li>
+<li>在 Full 模式情况下，会为配置类生成一个代理对象,所有被 <code>@Bean</code> 注解标记的方法会被增强,并且配置类不能为<code>final</code>,被<code>bean</code>注解标记的方法不能是 <code>private</code> 或 <code>final</code> 的。这很好理解因为cglib是基于继承的 被<code>private</code>和<code>final</code> 修饰无法被继承</li>
+</ul>
+</li>
+<li>lite模式<ul>
+<li>精简模式，不是<code>@Configuration</code>修饰，被<code>@Component</code>修饰或者使用<code>@ComponentScan</code>、<code>@Import</code>这些注解导入进spring容器的bean,都是lite模式</li>
+</ul>
+</li>
+</ul>
+<h1 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h1><p><code>ConfigurationClassPostProcessor</code> 这个类的作用就是用来解析<code>@Configuration</code>和<code>@Bean</code>等注解的</p>
+<img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.361h6zx93o.webp" alt="image" style="zoom:50%;" />
+
+<ul>
+<li>找到<code>postProcessBeanDefinitionRegistry</code>中的<code>processConfigBeanDefinitions</code>方法</li>
+<li>找到<code>ConfigurationClassUtils.checkConfigurationClassCandidate(bd, this.metadataReaderFactory)</code></li>
+</ul>
+<img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/98340adcb59135788459903250554a5d.lz82dmjh.webp" alt="98340adcb59135788459903250554a5d" style="zoom:50%;" />
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a target="_blank" rel="noopener" href="https://docs.spring.io/spring-framework/docs/6.1.11/javadoc-api/org/springframework/context/annotation/Configuration.html">Spring api文档</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/">erdong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/2024/07/30/@Component%E4%B8%8E@Configuration%E5%8C%BA%E5%88%AB/">https://erdong27.github.io/2024/07/30/@Component与@Configuration区别/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://erdong27.github.io" target="_blank">erdong</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Spring/">Spring</a></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2024/07/30/@Configuration%E4%B8%8E@Configurable%E7%9A%84%E6%AF%94%E8%BE%83/" title="@Configuration与@Configurable的比较"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7sn47fdyee.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">@Configuration与@Configurable的比较</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/07/30/@Configuration%E4%B8%8E@Configurable%E7%9A%84%E6%AF%94%E8%BE%83/" title="@Configuration与@Configurable的比较"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7sn47fdyee.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-30</div><div class="title">@Configuration与@Configurable的比较</div></div></a></div><div><a href="/2024/07/10/BeanFactory%E5%AE%B9%E5%99%A8%E5%AE%9E%E7%8E%B0/" title="BeanFactory容器的实现"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-10</div><div class="title">BeanFactory容器的实现</div></div></a></div><div><a href="/2024/07/12/Tomcat%E5%86%85%E5%B5%8C%E5%AE%B9%E5%99%A8/" title="Tomcat内嵌容器"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-12</div><div class="title">Tomcat内嵌容器</div></div></a></div><div><a href="/2024/07/15/cglib%E5%8E%9F%E7%90%86/" title="cglib原理"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-15</div><div class="title">cglib原理</div></div></a></div><div><a href="/2024/07/11/tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/" title="tomcat异常处理"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-11</div><div class="title">tomcat异常处理</div></div></a></div><div><a href="/2024/07/13/%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E%E5%8F%91%E5%B8%83%E5%99%A8/" title="事件监听器与发布器"><img class="cover" src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-13</div><div class="title">事件监听器与发布器</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">erdong</div><div class="author-info__description">JAVA后端开发攻城狮。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">23</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/erdong27"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/erdong27" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:15755699758@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="/atom.xml" target="_blank" title="RSS链接"><i class="fa fa-rss"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">本站所有博文均是博主的学习笔记与个人理解。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Component%E4%B8%8EConfiguration"><span class="toc-number">1.</span> <span class="toc-text">Component与Configuration</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%A4%E7%A7%8D%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.</span> <span class="toc-text">两种模式</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%BA%90%E7%A0%81"><span class="toc-number">3.</span> <span class="toc-text">源码</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/07/30/@Component%E4%B8%8E@Configuration%E5%8C%BA%E5%88%AB/" title="@Component与@Configuration区别"><img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="@Component与@Configuration区别"/></a><div class="content"><a class="title" href="/2024/07/30/@Component%E4%B8%8E@Configuration%E5%8C%BA%E5%88%AB/" title="@Component与@Configuration区别">@Component与@Configuration区别</a><time datetime="2024-07-30T07:11:06.000Z" title="发表于 2024-07-30 15:11:06">2024-07-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/07/30/@Configuration%E4%B8%8E@Configurable%E7%9A%84%E6%AF%94%E8%BE%83/" title="@Configuration与@Configurable的比较"><img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7sn47fdyee.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="@Configuration与@Configurable的比较"/></a><div class="content"><a class="title" href="/2024/07/30/@Configuration%E4%B8%8E@Configurable%E7%9A%84%E6%AF%94%E8%BE%83/" title="@Configuration与@Configurable的比较">@Configuration与@Configurable的比较</a><time datetime="2024-07-30T02:17:11.000Z" title="发表于 2024-07-30 10:17:11">2024-07-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" title="Lambda表达式函数式编程"><img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.8z6fbn47pi.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Lambda表达式函数式编程"/></a><div class="content"><a class="title" href="/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" title="Lambda表达式函数式编程">Lambda表达式函数式编程</a><time datetime="2024-07-25T15:05:00.000Z" title="发表于 2024-07-25 23:05:00">2024-07-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/07/25/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E9%80%9A%E9%85%8D%E7%AC%A6/" title="泛型与通配符"><img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="泛型与通配符"/></a><div class="content"><a class="title" href="/2024/07/25/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E9%80%9A%E9%85%8D%E7%AC%A6/" title="泛型与通配符">泛型与通配符</a><time datetime="2024-07-25T06:05:12.000Z" title="发表于 2024-07-25 14:05:12">2024-07-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" title="vite配置环境变量"><img src="https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/post_top_img.13locufso5.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="vite配置环境变量"/></a><div class="content"><a class="title" href="/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" title="vite配置环境变量">vite配置环境变量</a><time datetime="2024-07-19T15:13:28.000Z" title="发表于 2024-07-19 23:13:28">2024-07-19</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('https://cdn.jsdelivr.net/gh/erdong27/picx-images-hosting@master/img/image.7i0aekk5ml.webp')"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2024 By erdong</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">簡</button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=4.13.0"></script><script src="/js/main.js?v=4.13.0"></script><script src="/js/tw_cn.js?v=4.13.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const abcjsInit = () => {
+    const abcjsFn = () => {
+      document.querySelectorAll(".abc-music-sheet").forEach(ele => {
+        ABCJS.renderAbc(ele, ele.innerHTML, {responsive: 'resize'})
+      })
+    }
+    
+    typeof ABCJS === 'object' ? abcjsFn()
+      : getScript('https://cdn.jsdelivr.net/npm/abcjs@6.3.0/dist/abcjs-basic-min.min.js').then(abcjsFn)
+  }
+
+  window.pjax ? abcjsInit() : window.addEventListener('load', abcjsInit)
+})()</script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/click-heart.min.js" async="async" mobile="false"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=4.13.0"></script></div></div></body></html>
