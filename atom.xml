@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2024-07-30T07:25:58.700Z</updated>
+  <updated>2026-03-25T00:27:55.799Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring @Async 异步编程完全指南</title>
+    <link href="https://erdong27.github.io/2026/03/25/Spring-@Async%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/"/>
+    <id>https://erdong27.github.io/2026/03/25/Spring-@Async%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</id>
+    <published>2026-03-25T00:30:00.000Z</published>
+    <updated>2026-03-25T00:27:55.799Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Spring-Async-异步编程完全指南&quot;&gt;&lt;a href=&quot;#Spring-Async-异步编程完全指南&quot; class=&quot;headerlink&quot; title=&quot;Spring @Async 异步编程完全指南&quot;&gt;&lt;/a&gt;Spring @Async</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/categories/Java/Spring/"/>
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="Async" scheme="https://erdong27.github.io/tags/Async/"/>
+    
+    <category term="Multithreading" scheme="https://erdong27.github.io/tags/Multithreading/"/>
+    
+    <category term="ThreadPool" scheme="https://erdong27.github.io/tags/ThreadPool/"/>
+    
+  </entry>
   
   <entry>
     <title>@Component与@Configuration区别</title>
@@ -113,8 +146,7 @@
         
         
     <summary type="html">&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt; .env.prodution&lt;/code&gt;两个文件 分别为开发环境和生产环境(必须以&lt;code&gt;.env.&lt;/code&gt;开头)&lt;/p&gt;
-&lt;img</summary>
+&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt;.env.prodution&lt;/code&gt;两个文件</summary>
         
       
     
@@ -144,7 +176,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;Redis网络模型&quot;&gt;&lt;a href=&quot;#Redis网络模型&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -175,7 +206,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;RESP协议&quot;&gt;&lt;a href=&quot;#RESP协议&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -206,7 +236,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;Redis内存策略&quot;&gt;&lt;a href=&quot;#Redis内存策略&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -379,7 +408,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;通过-Import-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-Configuration&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;h1 id=&quot;通过-Import-amp-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-amp-Configuration&quot; class=&quot;headerlink&quot;</summary>
         
       
     
@@ -388,9 +417,9 @@
     <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
     
     
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
     <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
+    
+    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
     <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
     
@@ -408,7 +437,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;img</summary>
+    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;p&gt;&lt;img</summary>
         
       
     
@@ -466,9 +495,8 @@
       
         
         
-    <summary type="html">&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
-&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot;</summary>
         
       
     
@@ -520,8 +548,7 @@
       
         
         
-    <summary type="html">&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
 &lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td</summary>
         
       
@@ -536,31 +563,6 @@
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ConfigurableApplicaionContext</title>
-    <link href="https://erdong27.github.io/2024/07/10/%E5%AE%B9%E5%99%A8%E6%8E%A5%E5%8F%A3ApplicationContext/"/>
-    <id>https://erdong27.github.io/2024/07/10/%E5%AE%B9%E5%99%A8%E6%8E%A5%E5%8F%A3ApplicationContext/</id>
-    <published>2024-07-10T08:34:50.000Z</published>
-    <updated>2024-07-10T08:34:50.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;ConfigurableApplicaionContext类图&quot;&gt;&lt;a href=&quot;#ConfigurableApplicaionContext类图&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="ConfigurableApplicaionContext" scheme="https://erdong27.github.io/categories/ConfigurableApplicaionContext/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
   </entry>
   
