@@ -1899,6 +1899,15 @@
     <content><![CDATA[<h1 id="Spring-Boot-自动配置原理详解"><a href="#Spring-Boot-自动配置原理详解" class="headerlink" title="Spring Boot 自动配置原理详解"></a>Spring Boot 自动配置原理详解</h1><blockquote>
 <p>作为 Java 后端开发进阶路线的开篇，本文将深入剖析 Spring Boot 最核心的特性——自动配置机制。理解自动配置原理，是掌握 Spring Boot 的必经之路。</p>
 </blockquote>
+<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>Spring Boot</strong>: 2.7.x &#x2F; 3.x</li>
+<li><strong>Spring Framework</strong>: 5.3.x &#x2F; 6.x</li>
+<li><strong>Java</strong>: 8 &#x2F; 11 &#x2F; 17</li>
+</ul>
+<p>不同版本源码可能存在细微差异，但核心原理一致。</p>
+</blockquote>
 <h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
 <li><a href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE">什么是自动配置</a></li>
 <li><a href="#2-%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E7%9A%84%E6%A0%B8%E5%BF%83%E6%B3%A8%E8%A7%A3">自动配置的核心注解</a></li>
