@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-03-25T01:03:10.466Z</updated>
+  <updated>2026-03-25T01:26:41.941Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>为什么 Spring 和 IDEA 都不推荐使用 @Autowired 注解？</title>
+    <link href="https://erdong27.github.io/2026/03/25/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E6%8E%A8%E8%8D%90%E4%BD%BF%E7%94%A8@Autowired%E6%B3%A8%E8%A7%A3/"/>
+    <id>https://erdong27.github.io/2026/03/25/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E6%8E%A8%E8%8D%90%E4%BD%BF%E7%94%A8@Autowired%E6%B3%A8%E8%A7%A3/</id>
+    <published>2026-03-25T01:30:00.000Z</published>
+    <updated>2026-03-25T01:26:41.941Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;为什么-Spring-和-IDEA-都不推荐使用-Autowired-注解？&quot;&gt;&lt;a href=&quot;#为什么-Spring-和-IDEA-都不推荐使用-Autowired-注解？&quot; class=&quot;headerlink&quot; title=&quot;为什么 Spring 和</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/categories/Java/Spring/"/>
+    
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="Autowired" scheme="https://erdong27.github.io/tags/Autowired/"/>
+    
+    <category term="BestPractice" scheme="https://erdong27.github.io/tags/BestPractice/"/>
+    
+  </entry>
   
   <entry>
     <title>Spring @Async 异步编程完全指南</title>
@@ -536,37 +569,6 @@
     
     <category term="JVM" scheme="https://erdong27.github.io/categories/JVM/"/>
     
-    
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>BeanFactory容器的实现</title>
-    <link href="https://erdong27.github.io/2024/07/10/BeanFactory%E5%AE%B9%E5%99%A8%E5%AE%9E%E7%8E%B0/"/>
-    <id>https://erdong27.github.io/2024/07/10/BeanFactory%E5%AE%B9%E5%99%A8%E5%AE%9E%E7%8E%B0/</id>
-    <published>2024-07-10T08:41:34.000Z</published>
-    <updated>2024-07-10T08:41:34.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;img src=&quot;1ab2d9fe6f7527de1245f3cca0e72b35.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
-&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td</summary>
-        
-      
-    
-    
-    
-    <category term="BeanFactory" scheme="https://erdong27.github.io/categories/BeanFactory/"/>
-    
-    <category term="ApplicaionContext" scheme="https://erdong27.github.io/categories/BeanFactory/ApplicaionContext/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
