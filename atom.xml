@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-03-25T09:07:39.373Z</updated>
+  <updated>2026-03-26T00:45:47.806Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,36 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>@Conditional 注解家族全解析</title>
+    <link href="https://erdong27.github.io/2026/03/26/2026-03-25-@Conditional-%E6%B3%A8%E8%A7%A3%E5%AE%B6%E6%97%8F%E5%85%A8%E8%A7%A3%E6%9E%90/"/>
+    <id>https://erdong27.github.io/2026/03/26/2026-03-25-@Conditional-%E6%B3%A8%E8%A7%A3%E5%AE%B6%E6%97%8F%E5%85%A8%E8%A7%A3%E6%9E%90/</id>
+    <published>2026-03-26T10:00:00.000Z</published>
+    <updated>2026-03-26T00:45:47.806Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="Spring Boot 核心深入" scheme="https://erdong27.github.io/categories/Spring-Boot-%E6%A0%B8%E5%BF%83%E6%B7%B1%E5%85%A5/"/>
+    
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
+    
+    <category term="注解" scheme="https://erdong27.github.io/tags/%E6%B3%A8%E8%A7%A3/"/>
+    
+    <category term="条件装配" scheme="https://erdong27.github.io/tags/%E6%9D%A1%E4%BB%B6%E8%A3%85%E9%85%8D/"/>
+    
+  </entry>
   
   <entry>
     <title>Spring Boot 自动配置原理详解</title>
@@ -210,8 +240,7 @@
         
         
     <summary type="html">&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt; .env.prodution&lt;/code&gt;两个文件 分别为开发环境和生产环境(必须以&lt;code&gt;.env.&lt;/code&gt;开头)&lt;/p&gt;
-&lt;img</summary>
+&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt;.env.prodution&lt;/code&gt;两个文件</summary>
         
       
     
@@ -241,7 +270,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;Redis网络模型&quot;&gt;&lt;a href=&quot;#Redis网络模型&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -272,7 +300,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;RESP协议&quot;&gt;&lt;a href=&quot;#RESP协议&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -303,7 +330,6 @@
     <summary type="html">&lt;blockquote&gt;
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;/blockquote&gt;
 &lt;h1 id=&quot;Redis内存策略&quot;&gt;&lt;a href=&quot;#Redis内存策略&quot; class=&quot;headerlink&quot;</summary>
         
       
@@ -476,7 +502,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;通过-Import-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-Configuration&quot; class=&quot;headerlink&quot;</summary>
+    <summary type="html">&lt;h1 id=&quot;通过-Import-amp-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-amp-Configuration&quot; class=&quot;headerlink&quot;</summary>
         
       
     
@@ -505,7 +531,7 @@
       
         
         
-    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;img</summary>
+    <summary type="html">&lt;h1 id=&quot;Tomcat结构图&quot;&gt;&lt;a href=&quot;#Tomcat结构图&quot; class=&quot;headerlink&quot; title=&quot;Tomcat结构图&quot;&gt;&lt;/a&gt;Tomcat结构图&lt;/h1&gt;&lt;p&gt;&lt;img</summary>
         
       
     
@@ -548,35 +574,6 @@
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
     
     <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>对象绑定与类型转换</title>
-    <link href="https://erdong27.github.io/2024/07/10/%E5%AF%B9%E8%B1%A1%E7%BB%91%E5%AE%9A%E4%B8%8E%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"/>
-    <id>https://erdong27.github.io/2024/07/10/%E5%AF%B9%E8%B1%A1%E7%BB%91%E5%AE%9A%E4%B8%8E%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/</id>
-    <published>2024-07-10T12:34:57.000Z</published>
-    <updated>2024-07-10T12:34:57.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;img src=&quot;177201d46ad49b83e6d0eb9875f55524.png&quot; alt=&quot;截图&quot; style=&quot;zoom:50%;&quot; /&gt;
-
-&lt;h1 id=&quot;底层第一套转换接口&quot;&gt;&lt;a href=&quot;#底层第一套转换接口&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
-    
-    <category term="SpringWeb" scheme="https://erdong27.github.io/tags/SpringWeb/"/>
     
   </entry>
   
