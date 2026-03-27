@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-03-26T00:45:47.806Z</updated>
+  <updated>2026-03-27T00:36:44.920Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring Boot Starter 自定义实战</title>
+    <link href="https://erdong27.github.io/2026/03/27/2026-03-27-Spring-Boot-Starter%E8%87%AA%E5%AE%9A%E4%B9%89%E5%AE%9E%E6%88%98/"/>
+    <id>https://erdong27.github.io/2026/03/27/2026-03-27-Spring-Boot-Starter%E8%87%AA%E5%AE%9A%E4%B9%89%E5%AE%9E%E6%88%98/</id>
+    <published>2026-03-27T10:00:00.000Z</published>
+    <updated>2026-03-27T00:36:44.920Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Spring-Boot-Starter-自定义实战&quot;&gt;&lt;a href=&quot;#Spring-Boot-Starter-自定义实战&quot; class=&quot;headerlink&quot; title=&quot;Spring Boot Starter 自定义实战&quot;&gt;&lt;/a&gt;Spring</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/categories/Java/Spring-Boot/"/>
+    
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
+    
+    <category term="Starter" scheme="https://erdong27.github.io/tags/Starter/"/>
+    
+    <category term="自动配置" scheme="https://erdong27.github.io/tags/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/"/>
+    
+  </entry>
   
   <entry>
     <title>@Conditional 注解家族全解析</title>
@@ -545,35 +576,6 @@
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
     <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>tomcat异常处理</title>
-    <link href="https://erdong27.github.io/2024/07/11/tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/"/>
-    <id>https://erdong27.github.io/2024/07/11/tomcat%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/</id>
-    <published>2024-07-11T15:52:44.000Z</published>
-    <updated>2024-07-11T15:52:44.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;自定义error控制器&quot;&gt;&lt;a href=&quot;#自定义error控制器&quot; class=&quot;headerlink&quot; title=&quot;自定义error控制器&quot;&gt;&lt;/a&gt;自定义error控制器&lt;/h1&gt;&lt;figure class=&quot;highlight</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-    <category term="Tomcat" scheme="https://erdong27.github.io/tags/Tomcat/"/>
-    
-    <category term="SpringMVC" scheme="https://erdong27.github.io/tags/SpringMVC/"/>
     
   </entry>
   
