@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-03-30T00:40:21.701Z</updated>
+  <updated>2026-03-31T00:39:53.583Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring Boot 事件机制深度剖析</title>
+    <link href="https://erdong27.github.io/2026/03/31/2026-03-31-Spring-Boot-%E4%BA%8B%E4%BB%B6%E6%9C%BA%E5%88%B6%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/"/>
+    <id>https://erdong27.github.io/2026/03/31/2026-03-31-Spring-Boot-%E4%BA%8B%E4%BB%B6%E6%9C%BA%E5%88%B6%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/</id>
+    <published>2026-03-31T10:00:00.000Z</published>
+    <updated>2026-03-31T00:39:53.583Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Spring-Boot-事件机制深度剖析&quot;&gt;&lt;a href=&quot;#Spring-Boot-事件机制深度剖析&quot; class=&quot;headerlink&quot; title=&quot;Spring Boot 事件机制深度剖析&quot;&gt;&lt;/a&gt;Spring Boot</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/categories/Java/Spring-Boot/"/>
+    
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
+    
+    <category term="Spring Boot 核心深入" scheme="https://erdong27.github.io/tags/Spring-Boot-%E6%A0%B8%E5%BF%83%E6%B7%B1%E5%85%A5/"/>
+    
+    <category term="事件机制" scheme="https://erdong27.github.io/tags/%E4%BA%8B%E4%BB%B6%E6%9C%BA%E5%88%B6/"/>
+    
+    <category term="ApplicationEvent" scheme="https://erdong27.github.io/tags/ApplicationEvent/"/>
+    
+  </entry>
   
   <entry>
     <title>ApplicationRunner 与 CommandLineRunner 差异</title>
@@ -549,35 +582,6 @@
     <category term="ApplicationListener" scheme="https://erdong27.github.io/tags/ApplicationListener/"/>
     
     <category term="EventListener" scheme="https://erdong27.github.io/tags/EventListener/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>SpringBoot自动配置</title>
-    <link href="https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/"/>
-    <id>https://erdong27.github.io/2024/07/12/SpringBoot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE/</id>
-    <published>2024-07-12T14:41:21.000Z</published>
-    <updated>2024-07-12T14:41:21.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;通过-Import-amp-Configuration&quot;&gt;&lt;a href=&quot;#通过-Import-amp-Configuration&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="Srping" scheme="https://erdong27.github.io/tags/Srping/"/>
-    
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
-    <category term="EnableAutoConfiguration" scheme="https://erdong27.github.io/tags/EnableAutoConfiguration/"/>
     
   </entry>
   
