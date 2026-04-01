@@ -2796,4 +2796,141 @@
         <tag>ApplicationEvent</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Spring Boot 配置加密方案</title>
+    <url>/2026/04/01/2026-04-01-spring-boot-configuration-encryption/</url>
+    <content><![CDATA[<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>Spring Boot</strong>: 2.7.x &#x2F; 3.x</li>
+<li><strong>Spring Framework</strong>: 5.3.x &#x2F; 6.x</li>
+<li><strong>Java</strong>: 8 &#x2F; 11 &#x2F; 17</li>
+</ul>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在日常开发中，我们经常需要在配置文件中存储敏感信息，如数据库密码、API 密钥、第三方服务凭证等。将这些敏感信息明文存储在配置文件中存在严重的安全风险。一旦配置文件被泄露，攻击者即可获取这些敏感数据，导致数据泄露、系统被入侵等严重后果。</p>
+<p>本文将详细介绍 Spring Boot 中几种常用的配置加密方案，帮助你保护敏感配置数据。</p>
+<h2 id="一、Jasypt-加密方案"><a href="#一、Jasypt-加密方案" class="headerlink" title="一、Jasypt 加密方案"></a>一、Jasypt 加密方案</h2><p><a href="https://github.com/jasypt/jasypt">Jasypt</a> 是 Spring Boot 项目中最为流行的配置加密工具，它提供了简洁的 API 和强大的加密功能。</p>
+<h3 id="1-1-添加依赖"><a href="#1-1-添加依赖" class="headerlink" title="1.1 添加依赖"></a>1.1 添加依赖</h3><figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="comment">&lt;!-- Spring Boot 2.x --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.ulisesbocchio<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jasypt-spring-boot-starter<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.0.5<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- Spring Boot 3.x --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.ulisesbocchio<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jasypt-spring-boot-starter<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.0.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-基本配置"><a href="#1-2-基本配置" class="headerlink" title="1.2 基本配置"></a>1.2 基本配置</h3><p>在 <code>application.yml</code> 中配置加密密钥：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">jasypt:</span></span><br><span class="line">  <span class="attr">encryptor:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">your-secret-key</span>          <span class="comment"># 加密密钥（生产环境应通过环境变量注入）</span></span><br><span class="line">    <span class="attr">algorithm:</span> <span class="string">PBEWithMD5AndDES</span>        <span class="comment"># 加密算法</span></span><br><span class="line">    <span class="attr">iv-generator-classname:</span> <span class="string">org.jasypt.iv.NoIvParameterSpec</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>安全提示</strong>：生产环境中，<code>password</code> 切勿直接写在配置文件中，建议通过环境变量或启动参数传入：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -Djasypt.encryptor.password=your-secret-key -jar app.jar</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="1-3-生成加密密文"><a href="#1-3-生成加密密文" class="headerlink" title="1.3 生成加密密文"></a>1.3 生成加密密文</h3><p>Jasypt 提供了命令行工具生成加密密文：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 下载 jasypt jar 包</span></span><br><span class="line"><span class="comment"># 使用命令加密</span></span><br><span class="line">java -<span class="built_in">cp</span> jasypt-1.9.3.jar org.jasypt.intf.cli.JasyptPBEStringEncryptionCLI \</span><br><span class="line">    password=your-secret-key \</span><br><span class="line">    algorithm=PBEWithMD5AndDES \</span><br><span class="line">    input=your-actual-password</span><br></pre></td></tr></table></figure>
+
+<p>或者通过 Maven 插件生成：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.github.ulisesbocchio<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jasypt-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.0.5<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">password</span>&gt;</span>your-secret-key<span class="tag">&lt;/<span class="name">password</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">algorithm</span>&gt;</span>PBEWithMD5AndDES<span class="tag">&lt;/<span class="name">algorithm</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">goal</span>&gt;</span>encrypt<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">plainFile</span>&gt;</span>src/main/resources/encrypted.properties<span class="tag">&lt;/<span class="name">plainFile</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">encryptedFile</span>&gt;</span>target/classes/application.yml<span class="tag">&lt;/<span class="name">encryptedFile</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-4-使用加密配置"><a href="#1-4-使用加密配置" class="headerlink" title="1.4 使用加密配置"></a>1.4 使用加密配置</h3><p>在配置文件中使用 <code>ENC()</code> 包裹加密后的密文：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">datasource:</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">dbuser</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(加密后的密文)</span></span><br><span class="line">    <span class="attr">url:</span> <span class="string">jdbc:mysql://localhost:3306/mydb</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">redis:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(加密后的密文)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自定义敏感配置</span></span><br><span class="line"><span class="attr">aliyun:</span></span><br><span class="line">  <span class="attr">access-key:</span> <span class="string">ENC(加密后的密文)</span></span><br><span class="line">  <span class="attr">secret-key:</span> <span class="string">ENC(加密后的密文)</span></span><br></pre></td></tr></table></figure>
+
+<p>Spring Boot 启动时，Jasypt 会自动解密 <code>ENC()</code> 中的密文。</p>
+<h3 id="1-5-自定义加密属性"><a href="#1-5-自定义加密属性" class="headerlink" title="1.5 自定义加密属性"></a>1.5 自定义加密属性</h3><p>对于非标准前缀的配置，可以使用 <code>@EncryptedProperty</code> 注解或自定义属性源：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">JasyptConfig</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Bean(&quot;jasyptStringEncryptor&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> StringEncryptor <span class="title function_">stringEncryptor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">PooledPBEStringEncryptor</span> <span class="variable">encryptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PooledPBEStringEncryptor</span>();</span><br><span class="line">        encryptor.setConfig(<span class="keyword">new</span> <span class="title class_">SimpleStringPBEConfig</span>());</span><br><span class="line">        encryptor.setPassword(System.getenv(<span class="string">&quot;JASYPT_PASSWORD&quot;</span>));</span><br><span class="line">        encryptor.setAlgorithm(<span class="string">&quot;PBEWithMD5AndDES&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> encryptor;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、Spring-Cloud-Config-加密"><a href="#二、Spring-Cloud-Config-加密" class="headerlink" title="二、Spring Cloud Config 加密"></a>二、Spring Cloud Config 加密</h2><p>如果你的项目使用 Spring Cloud Config，可以利用其内置的加密功能。</p>
+<h3 id="2-1-启用加密服务"><a href="#2-1-启用加密服务" class="headerlink" title="2.1 启用加密服务"></a>2.1 启用加密服务</h3><p>在 Spring Cloud Config Server 中启用加解密：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># bootstrap.yml</span></span><br><span class="line"><span class="attr">encrypt:</span></span><br><span class="line">  <span class="attr">key:</span> <span class="string">your-encryption-key</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-加密和解密-API"><a href="#2-2-加密和解密-API" class="headerlink" title="2.2 加密和解密 API"></a>2.2 加密和解密 API</h3><p>Config Server 提供了加解密端点：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 加密</span></span><br><span class="line">curl -X POST http://config-server:8888/encrypt -d <span class="string">&quot;your-secret-value&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 解密</span></span><br><span class="line">curl -X POST http://config-server:8888/decrypt -d <span class="string">&quot;encrypted-value&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-使用加密配置"><a href="#2-3-使用加密配置" class="headerlink" title="2.3 使用加密配置"></a>2.3 使用加密配置</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">datasource:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">&#x27;&#123;cipher&#125;加密后的密文&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>Config Server 会自动处理解密。</p>
+<h2 id="三、对称加密与非对称加密对比"><a href="#三、对称加密与非对称加密对比" class="headerlink" title="三、对称加密与非对称加密对比"></a>三、对称加密与非对称加密对比</h2><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>对称加密 (Jasypt)</th>
+<th>非对称加密 (RSA&#x2F;AES)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>密钥管理</td>
+<td>简单，只需一个密钥</td>
+<td>复杂，需要公钥和私钥</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>单应用配置加密</td>
+<td>微服务间安全传输</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>高效</td>
+<td>相对较慢</td>
+</tr>
+<tr>
+<td>安全性</td>
+<td>中等</td>
+<td>更高</td>
+</tr>
+<tr>
+<td>推荐算法</td>
+<td>AES</td>
+<td>RSA + AES</td>
+</tr>
+</tbody></table>
+<h3 id="3-1-AES-对称加密实现"><a href="#3-1-AES-对称加密实现" class="headerlink" title="3.1 AES 对称加密实现"></a>3.1 AES 对称加密实现</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AesEncryptService</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">ALGORITHM</span> <span class="operator">=</span> <span class="string">&quot;AES&quot;</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TRANSFORMATION</span> <span class="operator">=</span> <span class="string">&quot;AES/ECB/PKCS5Padding&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;encrypt.key&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> String secretKey;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(String plainText)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">Key</span> <span class="variable">secretKeySpec</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(secretKey.getBytes(), ALGORITHM);</span><br><span class="line">        <span class="type">Cipher</span> <span class="variable">cipher</span> <span class="operator">=</span> Cipher.getInstance(TRANSFORMATION);</span><br><span class="line">        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);</span><br><span class="line">        <span class="type">byte</span>[] encrypted = cipher.doFinal(plainText.getBytes());</span><br><span class="line">        <span class="keyword">return</span> Base64.getEncoder().encodeToString(encrypted);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">decrypt</span><span class="params">(String cipherText)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">Key</span> <span class="variable">secretKeySpec</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(secretKey.getBytes(), ALGORITHM);</span><br><span class="line">        <span class="type">Cipher</span> <span class="variable">cipher</span> <span class="operator">=</span> Cipher.getInstance(TRANSFORMATION);</span><br><span class="line">        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);</span><br><span class="line">        <span class="type">byte</span>[] decrypted = cipher.doFinal(Base64.getDecoder().decode(cipherText));</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(decrypted);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、生产环境最佳实践"><a href="#四、生产环境最佳实践" class="headerlink" title="四、生产环境最佳实践"></a>四、生产环境最佳实践</h2><h3 id="4-1-密钥管理"><a href="#4-1-密钥管理" class="headerlink" title="4.1 密钥管理"></a>4.1 密钥管理</h3><ol>
+<li><p><strong>使用环境变量或密钥管理服务</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">jasypt:</span></span><br><span class="line">  <span class="attr">encryptor:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">$&#123;JASYPT_ENCRYPTOR_PASSWORD&#125;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>集成 HashiCorp Vault</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">vault:</span></span><br><span class="line">      <span class="attr">host:</span> <span class="string">vault.example.com</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">8200</span></span><br><span class="line">      <span class="attr">kv:</span></span><br><span class="line">        <span class="attr">backend:</span> <span class="string">secret</span></span><br><span class="line">        <span class="attr">default-context:</span> <span class="string">myapp/</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="4-2-多环境配置"><a href="#4-2-多环境配置" class="headerlink" title="4.2 多环境配置"></a>4.2 多环境配置</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># application-dev.yml</span></span><br><span class="line"><span class="attr">jasypt:</span></span><br><span class="line">  <span class="attr">encryptor:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">dev-password</span>  <span class="comment"># 开发环境可明文</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># application-prod.yml</span></span><br><span class="line"><span class="attr">jasypt:</span></span><br><span class="line">  <span class="attr">encryptor:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">$&#123;JASYPT_PASSWORD&#125;</span>  <span class="comment"># 生产环境必须通过环境变量</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-配置文件审查清单"><a href="#4-3-配置文件审查清单" class="headerlink" title="4.3 配置文件审查清单"></a>4.3 配置文件审查清单</h3><figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">✅ 数据库密码加密存储</span><br><span class="line">✅ API 密钥加密存储</span><br><span class="line">✅ 第三方服务凭证加密</span><br><span class="line">✅ 日志中不输出敏感信息</span><br><span class="line">✅ 使用环境变量注入密钥</span><br><span class="line">✅ 定期轮换加密密钥</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-完整配置示例"><a href="#4-4-完整配置示例" class="headerlink" title="4.4 完整配置示例"></a>4.4 完整配置示例</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">jasypt:</span></span><br><span class="line">  <span class="attr">encryptor:</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">$&#123;JASYPT_PASSWORD&#125;</span></span><br><span class="line">    <span class="attr">algorithm:</span> <span class="string">PBEWithMD5AndDES</span></span><br><span class="line">    <span class="attr">iv-generator-classname:</span> <span class="string">org.jasypt.iv.NoIvParameterSpec</span></span><br><span class="line">    <span class="attr">string-output-type:</span> <span class="string">base64</span></span><br><span class="line"></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">datasource:</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">dbuser</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">redis:</span></span><br><span class="line">    <span class="attr">host:</span> <span class="string">localhost</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">mail:</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">$&#123;MAIL_USERNAME&#125;</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line"></span><br><span class="line"><span class="attr">custom:</span></span><br><span class="line">  <span class="attr">oss:</span></span><br><span class="line">    <span class="attr">access-key:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line">    <span class="attr">secret-key:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line">  <span class="attr">sms:</span></span><br><span class="line">    <span class="attr">app-key:</span> <span class="string">ENC(xxxxxx)</span></span><br><span class="line">    <span class="attr">app-secret:</span> <span class="string">ENC(xxxxxx)</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="五、常见问题处理"><a href="#五、常见问题处理" class="headerlink" title="五、常见问题处理"></a>五、常见问题处理</h2><h3 id="5-1-解密失败排查"><a href="#5-1-解密失败排查" class="headerlink" title="5.1 解密失败排查"></a>5.1 解密失败排查</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 启用详细日志</span></span><br><span class="line">logging:</span><br><span class="line">  level:</span><br><span class="line">    com.github.ulisesbocchio: DEBUG</span><br></pre></td></tr></table></figure>
+
+<p>常见错误原因：</p>
+<ul>
+<li>密钥不匹配</li>
+<li>算法不一致</li>
+<li>密文格式错误</li>
+<li>Base64 编码问题</li>
+</ul>
+<h3 id="5-2-性能优化"><a href="#5-2-性能优化" class="headerlink" title="5.2 性能优化"></a>5.2 性能优化</h3><p>对于大量配置加密需求，建议：</p>
+<ol>
+<li>使用 AES 算法替代 PBE 系列算法</li>
+<li>合理设置缓存</li>
+<li>懒加载解密</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文详细介绍了 Spring Boot 配置加密的几种方案：</p>
+<ol>
+<li><strong>Jasypt</strong> - 最流行、最便捷的方案，适合大多数场景</li>
+<li><strong>Spring Cloud Config</strong> - 适合微服务架构的集中配置管理</li>
+<li><strong>自定义加密</strong> - 适合有特殊安全需求的场景</li>
+</ol>
+<p>在实际项目中，建议：</p>
+<ul>
+<li>敏感配置必须加密存储</li>
+<li>密钥通过环境变量或密钥管理服务管理</li>
+<li>定期轮换加密密钥</li>
+<li>完善配置审查机制</li>
+</ul>
+<p>合理使用配置加密，可以有效保护系统敏感数据安全，避免因配置泄露导致的安全事件。</p>
+<hr>
+<p><em>📷 封面来源：<a href="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=1200">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>Spring Boot</category>
+      </categories>
+      <tags>
+        <tag>Spring Boot</tag>
+        <tag>安全</tag>
+        <tag>配置管理</tag>
+      </tags>
+  </entry>
 </search>

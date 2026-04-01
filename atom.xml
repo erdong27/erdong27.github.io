@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-03-31T00:39:53.583Z</updated>
+  <updated>2026-04-01T00:37:13.132Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,38 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring Boot 配置加密方案</title>
+    <link href="https://erdong27.github.io/2026/04/01/2026-04-01-spring-boot-configuration-encryption/"/>
+    <id>https://erdong27.github.io/2026/04/01/2026-04-01-spring-boot-configuration-encryption/</id>
+    <published>2026-04-01T02:35:00.000Z</published>
+    <updated>2026-04-01T00:37:13.132Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/categories/Java/Spring-Boot/"/>
+    
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
+    
+    <category term="安全" scheme="https://erdong27.github.io/tags/%E5%AE%89%E5%85%A8/"/>
+    
+    <category term="配置管理" scheme="https://erdong27.github.io/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/"/>
+    
+  </entry>
   
   <entry>
     <title>Spring Boot 事件机制深度剖析</title>
@@ -551,37 +583,6 @@
     <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
     
     <category term="SpringApplication" scheme="https://erdong27.github.io/tags/SpringApplication/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>事件监听器与发布器</title>
-    <link href="https://erdong27.github.io/2024/07/13/%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E%E5%8F%91%E5%B8%83%E5%99%A8/"/>
-    <id>https://erdong27.github.io/2024/07/13/%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E%E5%8F%91%E5%B8%83%E5%99%A8/</id>
-    <published>2024-07-13T01:32:26.000Z</published>
-    <updated>2024-07-13T01:32:26.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;实现ApplicationListener接口&quot;&gt;&lt;a href=&quot;#实现ApplicationListener接口&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
-    <category term="ApplicationListener" scheme="https://erdong27.github.io/tags/ApplicationListener/"/>
-    
-    <category term="EventListener" scheme="https://erdong27.github.io/tags/EventListener/"/>
     
   </entry>
   
