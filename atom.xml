@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-01T00:37:13.132Z</updated>
+  <updated>2026-04-02T01:36:23.375Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,38 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring Boot 核心深入总结</title>
+    <link href="https://erdong27.github.io/2026/04/02/2026-04-02-Spring-Boot-%E6%A0%B8%E5%BF%83%E6%B7%B1%E5%85%A5%E6%80%BB%E7%BB%93/"/>
+    <id>https://erdong27.github.io/2026/04/02/2026-04-02-Spring-Boot-%E6%A0%B8%E5%BF%83%E6%B7%B1%E5%85%A5%E6%80%BB%E7%BB%93/</id>
+    <published>2026-04-02T10:00:00.000Z</published>
+    <updated>2026-04-02T01:36:23.375Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/categories/Java/Spring-Boot/"/>
+    
+    
+    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
+    
+    <category term="总结" scheme="https://erdong27.github.io/tags/%E6%80%BB%E7%BB%93/"/>
+    
+    <category term="最佳实践" scheme="https://erdong27.github.io/tags/%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/"/>
+    
+  </entry>
   
   <entry>
     <title>Spring Boot 配置加密方案</title>
@@ -556,33 +588,6 @@
     
     
     <category term="图床" scheme="https://erdong27.github.io/tags/%E5%9B%BE%E5%BA%8A/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>SpringBoot启动过程</title>
-    <link href="https://erdong27.github.io/2024/07/13/SpringBoot%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/"/>
-    <id>https://erdong27.github.io/2024/07/13/SpringBoot%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/</id>
-    <published>2024-07-13T14:32:21.000Z</published>
-    <updated>2024-07-13T14:32:21.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;SpringBoot启动过程&quot;&gt;&lt;a href=&quot;#SpringBoot启动过程&quot; class=&quot;headerlink&quot; title=&quot;SpringBoot启动过程&quot;&gt;&lt;/a&gt;SpringBoot启动过程&lt;/h1&gt;&lt;h2</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="SpringBoot" scheme="https://erdong27.github.io/tags/SpringBoot/"/>
-    
-    <category term="SpringApplication" scheme="https://erdong27.github.io/tags/SpringApplication/"/>
     
   </entry>
   

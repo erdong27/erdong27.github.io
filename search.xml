@@ -2933,4 +2933,209 @@
         <tag>配置管理</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Spring Boot 核心深入总结</title>
+    <url>/2026/04/02/2026-04-02-Spring-Boot-%E6%A0%B8%E5%BF%83%E6%B7%B1%E5%85%A5%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>Spring Boot</strong>: 2.7.x &#x2F; 3.x</li>
+<li><strong>Spring Framework</strong>: 5.3.x &#x2F; 6.x</li>
+<li><strong>Java</strong>: 8 &#x2F; 11 &#x2F; 17</li>
+</ul>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>经过六天的深入探索，我们已经系统学习了 Spring Boot 的核心机制。本文将对这些知识进行系统梳理和总结，帮助读者建立完整的知识体系，并提供实际项目中的最佳实践建议。</p>
+<h2 id="一、知识体系回顾"><a href="#一、知识体系回顾" class="headerlink" title="一、知识体系回顾"></a>一、知识体系回顾</h2><h3 id="1-1-自动配置原理"><a href="#1-1-自动配置原理" class="headerlink" title="1.1 自动配置原理"></a>1.1 自动配置原理</h3><p>Spring Boot 的自动配置是其最核心的特性，理解其工作原理至关重要：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 核心注解解析</span></span><br><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line">├── <span class="meta">@SpringBootConfiguration</span>  <span class="comment">// 标记配置类</span></span><br><span class="line">├── <span class="meta">@EnableAutoConfiguration</span>  <span class="comment">// 开启自动配置</span></span><br><span class="line">│   └── <span class="meta">@Import(AutoConfigurationImportSelector.class)</span></span><br><span class="line">└── <span class="meta">@ComponentScan</span>            <span class="comment">// 组件扫描</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键机制：</strong></p>
+<ul>
+<li><code>spring.factories</code> 中定义的自动配置类</li>
+<li><code>@Conditional</code> 条件注解控制配置生效</li>
+<li>属性绑定通过 <code>@EnableConfigurationProperties</code></li>
+</ul>
+<h3 id="1-2-Conditional-注解家族"><a href="#1-2-Conditional-注解家族" class="headerlink" title="1.2 @Conditional 注解家族"></a>1.2 @Conditional 注解家族</h3><table>
+<thead>
+<tr>
+<th>注解</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@ConditionalOnClass</code></td>
+<td>类存在时生效</td>
+</tr>
+<tr>
+<td><code>@ConditionalOnMissingClass</code></td>
+<td>类不存在时生效</td>
+</tr>
+<tr>
+<td><code>@ConditionalOnBean</code></td>
+<td>Bean 存在时生效</td>
+</tr>
+<tr>
+<td><code>@ConditionalOnMissingBean</code></td>
+<td>Bean 不存在时生效</td>
+</tr>
+<tr>
+<td><code>@ConditionalOnProperty</code></td>
+<td>配置属性满足条件时生效</td>
+</tr>
+<tr>
+<td><code>@ConditionalOnWebApplication</code></td>
+<td>Web 应用时生效</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 实际应用示例</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="meta">@ConditionalOnClass(DataSource.class)</span></span><br><span class="line"><span class="meta">@ConditionalOnProperty(prefix = &quot;spring.datasource&quot;, name = &quot;url&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DataSourceAutoConfiguration</span> &#123;</span><br><span class="line">    <span class="comment">// 自动配置数据源</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-Starter-自定义流程"><a href="#1-3-Starter-自定义流程" class="headerlink" title="1.3 Starter 自定义流程"></a>1.3 Starter 自定义流程</h3><p>自定义 Starter 的标准结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">my-spring-boot-starter/</span><br><span class="line">├── src/main/java/</span><br><span class="line">│   └── com/example/autoconfigure/</span><br><span class="line">│       ├── MyAutoConfiguration.java      # 自动配置类</span><br><span class="line">│       └── MyProperties.java             # 配置属性类</span><br><span class="line">├── src/main/resources/</span><br><span class="line">│   └── META-INF/</span><br><span class="line">│       └── spring.factories              # 自动配置注册</span><br><span class="line">└── pom.xml</span><br></pre></td></tr></table></figure>
+
+<p><strong>核心步骤：</strong></p>
+<ol>
+<li>创建自动配置类，使用 <code>@Conditional</code> 控制条件</li>
+<li>定义 <code>xxxProperties</code> 绑定配置属性</li>
+<li>在 <code>spring.factories</code> 中注册自动配置</li>
+<li>打包发布，供其他项目引用</li>
+</ol>
+<h3 id="1-4-启动时执行方案对比"><a href="#1-4-启动时执行方案对比" class="headerlink" title="1.4 启动时执行方案对比"></a>1.4 启动时执行方案对比</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>执行时机</th>
+<th>使用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@PostConstruct</code></td>
+<td>Bean 初始化后</td>
+<td>单 Bean 初始化逻辑</td>
+</tr>
+<tr>
+<td><code>InitializingBean</code></td>
+<td>Bean 初始化后</td>
+<td>需要访问其他 Bean 时</td>
+</tr>
+<tr>
+<td><code>ApplicationRunner</code></td>
+<td>应用启动完成后</td>
+<td>需要访问完整上下文</td>
+</tr>
+<tr>
+<td><code>CommandLineRunner</code></td>
+<td>应用启动完成后</td>
+<td>需要处理命令行参数</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 推荐：ApplicationRunner 执行顺序控制</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@Order(1)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FirstRunner</span> <span class="keyword">implements</span> <span class="title class_">ApplicationRunner</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">(ApplicationArguments args)</span> &#123;</span><br><span class="line">        <span class="comment">// 最先执行</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@Order(2)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SecondRunner</span> <span class="keyword">implements</span> <span class="title class_">ApplicationRunner</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">(ApplicationArguments args)</span> &#123;</span><br><span class="line">        <span class="comment">// 其次执行</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-5-事件机制"><a href="#1-5-事件机制" class="headerlink" title="1.5 事件机制"></a>1.5 事件机制</h3><p>Spring Boot 的事件体系：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ApplicationStartingEvent      → 应用启动时</span><br><span class="line">ApplicationEnvironmentPreparedEvent → 环境准备好</span><br><span class="line">ApplicationContextInitializedEvent  → 上下文初始化</span><br><span class="line">ApplicationPreparedEvent      → 应用准备好</span><br><span class="line">ContextRefreshedEvent         → 上下文刷新</span><br><span class="line">ApplicationStartedEvent       → 应用已启动</span><br><span class="line">ApplicationReadyEvent         → 应用就绪</span><br><span class="line">ApplicationFailedEvent        → 应用失败</span><br></pre></td></tr></table></figure>
+
+<p><strong>监听器实现方式：</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 方式一：实现 ApplicationListener</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyListener</span> <span class="keyword">implements</span> <span class="title class_">ApplicationListener</span>&lt;ApplicationReadyEvent&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onApplicationEvent</span><span class="params">(ApplicationReadyEvent event)</span> &#123;</span><br><span class="line">        <span class="comment">// 处理事件</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式二：@EventListener 注解</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyEventHandler</span> &#123;</span><br><span class="line">    <span class="meta">@EventListener(ApplicationReadyEvent.class)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleReadyEvent</span><span class="params">(ApplicationReadyEvent event)</span> &#123;</span><br><span class="line">        <span class="comment">// 处理事件</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@EventListener(condition = &quot;#event.success&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleConditionalEvent</span><span class="params">(CustomEvent event)</span> &#123;</span><br><span class="line">        <span class="comment">// 条件监听</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-6-配置加密方案"><a href="#1-6-配置加密方案" class="headerlink" title="1.6 配置加密方案"></a>1.6 配置加密方案</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>特点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Jasypt</td>
+<td>简单易用，社区活跃</td>
+<td>单体应用</td>
+</tr>
+<tr>
+<td>Spring Cloud Config</td>
+<td>集中管理，支持动态刷新</td>
+<td>微服务架构</td>
+</tr>
+<tr>
+<td>自定义加密</td>
+<td>灵活可控</td>
+<td>特殊安全需求</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Jasypt 使用示例</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">JasyptConfig</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Bean(&quot;jasyptStringEncryptor&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> StringEncryptor <span class="title function_">stringEncryptor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">PooledPBEStringEncryptor</span> <span class="variable">encryptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PooledPBEStringEncryptor</span>();</span><br><span class="line">        <span class="type">SimpleStringPBEConfig</span> <span class="variable">config</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SimpleStringPBEConfig</span>();</span><br><span class="line">        config.setPassword(System.getenv(<span class="string">&quot;JASYPT_PASSWORD&quot;</span>));</span><br><span class="line">        config.setAlgorithm(<span class="string">&quot;PBEWithMD5AndDES&quot;</span>);</span><br><span class="line">        encryptor.setConfig(config);</span><br><span class="line">        <span class="keyword">return</span> encryptor;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、核心知识点串联"><a href="#二、核心知识点串联" class="headerlink" title="二、核心知识点串联"></a>二、核心知识点串联</h2><h3 id="2-1-自动配置的完整流程"><a href="#2-1-自动配置的完整流程" class="headerlink" title="2.1 自动配置的完整流程"></a>2.1 自动配置的完整流程</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────┐</span><br><span class="line">│                    Spring Boot 启动流程                      │</span><br><span class="line">├─────────────────────────────────────────────────────────────┤</span><br><span class="line">│  1. 加载 spring.factories                                     │</span><br><span class="line">│     └── 读取所有自动配置类                                     │</span><br><span class="line">│                                                              │</span><br><span class="line">│  2. 解析 @Conditional 条件                                    │</span><br><span class="line">│     ├── @ConditionalOnClass - 检查类是否存在                  │</span><br><span class="line">│     ├── @ConditionalOnProperty - 检查配置属性                 │</span><br><span class="line">│     └── @ConditionalOnBean - 检查 Bean 是否存在               │</span><br><span class="line">│                                                              │</span><br><span class="line">│  3. 执行条件匹配的自动配置                                     │</span><br><span class="line">│     └── 创建 Bean，注入依赖                                    │</span><br><span class="line">│                                                              │</span><br><span class="line">│  4. 属性绑定                                                  │</span><br><span class="line">│     └── @EnableConfigurationProperties                        │</span><br><span class="line">│                                                              │</span><br><span class="line">│  5. 触发事件                                                  │</span><br><span class="line">│     └── ApplicationReadyEvent                                 │</span><br><span class="line">│                                                              │</span><br><span class="line">│  6. 执行 Runner                                               │</span><br><span class="line">│     └── ApplicationRunner / CommandLineRunner                 │</span><br><span class="line">└─────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-配置优先级"><a href="#2-2-配置优先级" class="headerlink" title="2.2 配置优先级"></a>2.2 配置优先级</h3><p>Spring Boot 配置的优先级（从高到低）：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 命令行参数</span><br><span class="line">2. Java 系统属性 (System.getProperties())</span><br><span class="line">3. 操作系统环境变量</span><br><span class="line">4. application-&#123;profile&#125;.properties/yaml</span><br><span class="line">5. application.properties/yaml</span><br><span class="line">6. @PropertySource 注解</span><br><span class="line">7. 默认值 (@Value 默认值)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 配置使用示例</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConfigDemo</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 从配置文件中读取，支持默认值</span></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;app.name:default-name&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> String appName;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 复杂对象绑定</span></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> AppProperties appProperties;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="meta">@ConfigurationProperties(prefix = &quot;app&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AppProperties</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> String version;</span><br><span class="line">    <span class="keyword">private</span> List&lt;String&gt; features;</span><br><span class="line">    <span class="comment">// getters and setters</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-Bean-生命周期与扩展点"><a href="#2-3-Bean-生命周期与扩展点" class="headerlink" title="2.3 Bean 生命周期与扩展点"></a>2.3 Bean 生命周期与扩展点</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">实例化 → 属性赋值 → 初始化 → 使用 → 销毁</span><br><span class="line">   ↓        ↓        ↓      ↓      ↓</span><br><span class="line"> 构造器   @Autowired  @PostConstruct   @PreDestroy</span><br><span class="line">          @Value     InitializingBean  DisposableBean</span><br><span class="line">                     BeanPostProcessor</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// BeanPostProcessor 扩展示例</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomBeanPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">BeanPostProcessor</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">postProcessBeforeInitialization</span><span class="params">(Object bean, String beanName)</span> &#123;</span><br><span class="line">        <span class="comment">// 初始化前处理</span></span><br><span class="line">        <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> ServiceBean) &#123;</span><br><span class="line">            <span class="comment">// 自定义处理</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">postProcessAfterInitialization</span><span class="params">(Object bean, String beanName)</span> &#123;</span><br><span class="line">        <span class="comment">// 初始化后处理</span></span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、最佳实践"><a href="#三、最佳实践" class="headerlink" title="三、最佳实践"></a>三、最佳实践</h2><h3 id="3-1-项目结构规范"><a href="#3-1-项目结构规范" class="headerlink" title="3.1 项目结构规范"></a>3.1 项目结构规范</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">my-project/</span><br><span class="line">├── src/main/java/com/example/</span><br><span class="line">│   ├── MyApplication.java              # 启动类</span><br><span class="line">│   ├── config/                         # 配置类</span><br><span class="line">│   │   ├── WebConfig.java</span><br><span class="line">│   │   └── SecurityConfig.java</span><br><span class="line">│   ├── controller/                     # 控制器层</span><br><span class="line">│   ├── service/                        # 服务层</span><br><span class="line">│   │   └── impl/</span><br><span class="line">│   ├── repository/                     # 数据访问层</span><br><span class="line">│   ├── entity/                         # 实体类</span><br><span class="line">│   ├── dto/                            # 数据传输对象</span><br><span class="line">│   ├── vo/                             # 视图对象</span><br><span class="line">│   ├── mapper/                         # 映射器</span><br><span class="line">│   ├── util/                           # 工具类</span><br><span class="line">│   ├── listener/                       # 监听器</span><br><span class="line">│   └── runner/                         # 启动执行器</span><br><span class="line">├── src/main/resources/</span><br><span class="line">│   ├── application.yml                 # 主配置</span><br><span class="line">│   ├── application-dev.yml             # 开发环境</span><br><span class="line">│   ├── application-prod.yml            # 生产环境</span><br><span class="line">│   └── mapper/                         # XML 映射文件</span><br><span class="line">└── src/test/</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-配置管理最佳实践"><a href="#3-2-配置管理最佳实践" class="headerlink" title="3.2 配置管理最佳实践"></a>3.2 配置管理最佳实践</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># application.yml 结构</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">application:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">my-service</span></span><br><span class="line">  <span class="attr">profiles:</span></span><br><span class="line">    <span class="attr">active:</span> <span class="string">$&#123;SPRING_PROFILES_ACTIVE:dev&#125;</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment"># 数据源配置（敏感信息加密）</span></span><br><span class="line">  <span class="attr">datasource:</span></span><br><span class="line">    <span class="attr">url:</span> <span class="string">jdbc:mysql://localhost:3306/mydb</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">dbuser</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(加密后的密文)</span></span><br><span class="line">    </span><br><span class="line">  <span class="comment"># Redis 配置</span></span><br><span class="line">  <span class="attr">redis:</span></span><br><span class="line">    <span class="attr">host:</span> <span class="string">localhost</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">ENC(加密后的密文)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自定义配置</span></span><br><span class="line"><span class="attr">app:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">$&#123;spring.application.name&#125;</span></span><br><span class="line">  <span class="attr">version:</span> <span class="string">@project.version@</span></span><br><span class="line">  <span class="attr">features:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">feature1</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">feature2</span></span><br><span class="line">  </span><br><span class="line"><span class="comment"># 日志配置</span></span><br><span class="line"><span class="attr">logging:</span></span><br><span class="line">  <span class="attr">level:</span></span><br><span class="line">    <span class="attr">root:</span> <span class="string">INFO</span></span><br><span class="line">    <span class="attr">com.example:</span> <span class="string">DEBUG</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-自动配置开发规范"><a href="#3-3-自动配置开发规范" class="headerlink" title="3.3 自动配置开发规范"></a>3.3 自动配置开发规范</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义自动配置类编写规范</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Configuration(proxyBeanMethods = false)</span>  <span class="comment">// 减少代理开销</span></span><br><span class="line"><span class="meta">@ConditionalOnClass(MyService.class)</span>       <span class="comment">// 条件判断</span></span><br><span class="line"><span class="meta">@ConditionalOnProperty(                    // 配置开关</span></span><br><span class="line"><span class="meta">    prefix = &quot;my.service&quot;,</span></span><br><span class="line"><span class="meta">    name = &quot;enabled&quot;,</span></span><br><span class="line"><span class="meta">    havingValue = &quot;true&quot;,</span></span><br><span class="line"><span class="meta">    matchIfMissing = true</span></span><br><span class="line"><span class="meta">)</span></span><br><span class="line"><span class="meta">@EnableConfigurationProperties(MyServiceProperties.class)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyServiceAutoConfiguration</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> MyServiceProperties properties;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">MyServiceAutoConfiguration</span><span class="params">(MyServiceProperties properties)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.properties = properties;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="meta">@ConditionalOnMissingBean</span>  <span class="comment">// 避免重复定义</span></span><br><span class="line">    <span class="keyword">public</span> MyService <span class="title function_">myService</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">MyService</span> <span class="variable">service</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MyService</span>();</span><br><span class="line">        service.setConfig(properties);</span><br><span class="line">        <span class="keyword">return</span> service;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-启动优化建议"><a href="#3-4-启动优化建议" class="headerlink" title="3.4 启动优化建议"></a>3.4 启动优化建议</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyApplication</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 禁用启动 banner，减少启动时间</span></span><br><span class="line">        <span class="type">SpringApplication</span> <span class="variable">app</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SpringApplication</span>(MyApplication.class);</span><br><span class="line">        app.setBannerMode(Banner.Mode.OFF);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 延迟初始化（开发环境适用）</span></span><br><span class="line">        app.setLazyInitialization(<span class="literal">true</span>);</span><br><span class="line">        </span><br><span class="line">        app.run(args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-5-监控与健康检查"><a href="#3-5-监控与健康检查" class="headerlink" title="3.5 监控与健康检查"></a>3.5 监控与健康检查</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomHealthIndicator</span> <span class="keyword">implements</span> <span class="title class_">HealthIndicator</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Health <span class="title function_">health</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">errorCode</span> <span class="operator">=</span> check();</span><br><span class="line">        <span class="keyword">if</span> (errorCode != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> Health.down()</span><br><span class="line">                .withDetail(<span class="string">&quot;Error Code&quot;</span>, errorCode)</span><br><span class="line">                .build();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> Health.up().build();</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="title function_">check</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 自定义检查逻辑</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、常见问题与解决方案"><a href="#四、常见问题与解决方案" class="headerlink" title="四、常见问题与解决方案"></a>四、常见问题与解决方案</h2><h3 id="4-1-自动配置不生效"><a href="#4-1-自动配置不生效" class="headerlink" title="4.1 自动配置不生效"></a>4.1 自动配置不生效</h3><p><strong>排查步骤：</strong></p>
+<ol>
+<li>检查 <code>spring.factories</code> 路径是否正确</li>
+<li>确认 <code>@Conditional</code> 条件是否满足</li>
+<li>检查是否有其他配置类提前定义了相同 Bean</li>
+<li>启用 DEBUG 日志查看自动配置报告</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看自动配置报告</span></span><br><span class="line"><span class="attr">debug:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-配置属性不绑定"><a href="#4-2-配置属性不绑定" class="headerlink" title="4.2 配置属性不绑定"></a>4.2 配置属性不绑定</h3><p><strong>常见原因：</strong></p>
+<ul>
+<li>缺少 <code>@EnableConfigurationProperties</code></li>
+<li>缺少 getter&#x2F;setter</li>
+<li>属性名拼写错误</li>
+<li>类型不匹配</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 正确的属性类定义</span></span><br><span class="line"><span class="meta">@ConfigurationProperties(prefix = &quot;app&quot;)</span></span><br><span class="line"><span class="meta">@Validated</span>  <span class="comment">// 支持 JSR-303 校验</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AppProperties</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@NotNull</span></span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Min(1)</span></span><br><span class="line">    <span class="meta">@Max(100)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="variable">maxConnections</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 必须有 getter/setter</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getName</span><span class="params">()</span> &#123; <span class="keyword">return</span> name; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String name)</span> &#123; <span class="built_in">this</span>.name = name; &#125;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-循环依赖问题"><a href="#4-3-循环依赖问题" class="headerlink" title="4.3 循环依赖问题"></a>4.3 循环依赖问题</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 使用 @Lazy 延迟注入解决循环依赖</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ServiceA</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ServiceB serviceB;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ServiceA</span><span class="params">(<span class="meta">@Lazy</span> ServiceB serviceB)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.serviceB = serviceB;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、学习路径建议"><a href="#五、学习路径建议" class="headerlink" title="五、学习路径建议"></a>五、学习路径建议</h2><h3 id="5-1-进阶路线"><a href="#5-1-进阶路线" class="headerlink" title="5.1 进阶路线"></a>5.1 进阶路线</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">第一阶段：Spring Boot 基础</span><br><span class="line">├── 自动配置原理</span><br><span class="line">├── 常用 Starter 使用</span><br><span class="line">└── RESTful API 开发</span><br><span class="line"></span><br><span class="line">第二阶段：核心机制深入</span><br><span class="line">├── 条件注解与自动配置</span><br><span class="line">├── 事件机制</span><br><span class="line">├── 配置加密</span><br><span class="line">└── 自定义 Starter</span><br><span class="line"></span><br><span class="line">第三阶段：性能优化</span><br><span class="line">├── 启动优化</span><br><span class="line">├── 内存优化</span><br><span class="line">└── 响应式编程</span><br><span class="line"></span><br><span class="line">第四阶段：微服务架构</span><br><span class="line">├── Spring Cloud</span><br><span class="line">├── 服务注册与发现</span><br><span class="line">├── 配置中心</span><br><span class="line">└── 监控与链路追踪</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-推荐资源"><a href="#5-2-推荐资源" class="headerlink" title="5.2 推荐资源"></a>5.2 推荐资源</h3><ul>
+<li><strong>官方文档</strong>：<a href="https://spring.io/projects/spring-boot">https://spring.io/projects/spring-boot</a></li>
+<li><strong>源码阅读</strong>：Spring Boot 自动配置源码</li>
+<li><strong>实践项目</strong>：从零开始搭建一个完整的微服务应用</li>
+</ul>
+<h2 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a>六、总结</h2><p>本文系统总结了 Spring Boot 第一周的六个核心主题：</p>
+<ol>
+<li><strong>自动配置原理</strong> - 理解 Spring Boot 的魔法背后</li>
+<li><strong>@Conditional 注解</strong> - 灵活控制配置生效条件</li>
+<li><strong>Starter 自定义</strong> - 封装可复用的组件</li>
+<li><strong>启动执行方案</strong> - 选择合适的时机执行初始化逻辑</li>
+<li><strong>事件机制</strong> - 解耦应用各模块</li>
+<li><strong>配置加密</strong> - 保护敏感信息安全</li>
+</ol>
+<p>掌握这些核心知识，将帮助你：</p>
+<ul>
+<li>更高效地开发 Spring Boot 应用</li>
+<li>深入排查和解决复杂问题</li>
+<li>设计出更优雅、可维护的系统架构</li>
+</ul>
+<p>在下一周的学习中，我们将进入<strong>并发编程实战</strong>，深入探讨 Java 并发编程的核心概念和最佳实践。</p>
+<hr>
+<p><em>📷 封面来源：<a href="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>Spring Boot</category>
+      </categories>
+      <tags>
+        <tag>Spring Boot</tag>
+        <tag>总结</tag>
+        <tag>最佳实践</tag>
+      </tags>
+  </entry>
 </search>
