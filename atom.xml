@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-07T01:18:06.403Z</updated>
+  <updated>2026-04-08T00:39:26.547Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>CompletableFuture 异步编排完全指南</title>
+    <link href="https://erdong27.github.io/2026/04/08/2026-04-08-CompletableFuture%E5%BC%82%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/"/>
+    <id>https://erdong27.github.io/2026/04/08/2026-04-08-CompletableFuture%E5%BC%82%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</id>
+    <published>2026-04-08T10:00:00.000Z</published>
+    <updated>2026-04-08T00:39:26.547Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;CompletableFuture-异步编排完全指南&quot;&gt;&lt;a href=&quot;#CompletableFuture-异步编排完全指南&quot; class=&quot;headerlink&quot; title=&quot;CompletableFuture</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+    <category term="CompletableFuture" scheme="https://erdong27.github.io/tags/CompletableFuture/"/>
+    
+    <category term="异步编程" scheme="https://erdong27.github.io/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/"/>
+    
+  </entry>
   
   <entry>
     <title>ThreadPoolExecutor参数调优实战</title>
@@ -566,37 +599,6 @@
     <category term="Redis" scheme="https://erdong27.github.io/tags/Redis/"/>
     
     <category term="NOSQL" scheme="https://erdong27.github.io/tags/NOSQL/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>cglib原理</title>
-    <link href="https://erdong27.github.io/2024/07/15/cglib%E5%8E%9F%E7%90%86/"/>
-    <id>https://erdong27.github.io/2024/07/15/cglib%E5%8E%9F%E7%90%86/</id>
-    <published>2024-07-15T15:08:13.000Z</published>
-    <updated>2024-07-15T15:08:13.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;CGLIB代理原理-MethodProxy&quot;&gt;&lt;a href=&quot;#CGLIB代理原理-MethodProxy&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-    <category term="SpringAop" scheme="https://erdong27.github.io/tags/SpringAop/"/>
-    
-    <category term="CGLIB" scheme="https://erdong27.github.io/tags/CGLIB/"/>
-    
-    <category term="代理" scheme="https://erdong27.github.io/tags/%E4%BB%A3%E7%90%86/"/>
     
   </entry>
   

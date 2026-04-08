@@ -3301,4 +3301,272 @@
         <tag>性能优化</tag>
       </tags>
   </entry>
+  <entry>
+    <title>CompletableFuture 异步编排完全指南</title>
+    <url>/2026/04/08/2026-04-08-CompletableFuture%E5%BC%82%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</url>
+    <content><![CDATA[<h1 id="CompletableFuture-异步编排完全指南"><a href="#CompletableFuture-异步编排完全指南" class="headerlink" title="CompletableFuture 异步编排完全指南"></a>CompletableFuture 异步编排完全指南</h1><blockquote>
+<p>CompletableFuture 是 Java 8 引入的异步编程利器，它实现了 Future 接口，提供了强大的异步编排能力。本文将全面解析 CompletableFuture 的核心用法与最佳实践。</p>
+</blockquote>
+<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>Java</strong>: 8 / 11 / 17 / 21</li>
+<li><strong>Spring Boot</strong>: 2.7.x / 3.x</li>
+<li><strong>CompletableFuture</strong>: JDK 8+（部分特性在 JDK 9/12 增强）</li>
+</ul>
+</blockquote>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
+<li><a href="#1-completablefuture-概述">CompletableFuture 概述</a></li>
+<li><a href="#2-创建-completablefuture">创建 CompletableFuture</a></li>
+<li><a href="#3-异步计算结果获取">异步计算结果获取</a></li>
+<li><a href="#4-异步编排核心方法">异步编排核心方法</a></li>
+<li><a href="#5-异常处理机制">异常处理机制</a></li>
+<li><a href="#6-多任务组合编排">多任务组合编排</a></li>
+<li><a href="#7-线程池选择策略">线程池选择策略</a></li>
+<li><a href="#8-实战案例">实战案例</a></li>
+<li><a href="#9-最佳实践与避坑指南">最佳实践与避坑指南</a></li>
+<li><a href="#10-总结">总结</a></li>
+</ol>
+<hr>
+<h2 id="1-CompletableFuture-概述"><a href="#1-CompletableFuture-概述" class="headerlink" title="1. CompletableFuture 概述"></a>1. CompletableFuture 概述</h2><h3 id="1-1-Future-的局限性"><a href="#1-1-Future-的局限性" class="headerlink" title="1.1 Future 的局限性"></a>1.1 Future 的局限性</h3><p>在 CompletableFuture 出现之前，我们使用 Future 来处理异步任务：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">10</span>);</span><br><span class="line">Future&lt;String&gt; future = executor.submit(() -&gt; &#123;</span><br><span class="line">    <span class="comment">// 耗时操作</span></span><br><span class="line">    Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello, Future!&quot;</span>;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 阻塞等待结果</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result</span> <span class="operator">=</span> future.get();</span><br><span class="line">System.out.println(result);</span><br></pre></td></tr></table></figure>
+<p><strong>Future 的痛点：</strong></p>
+<ol>
+<li><strong>不支持回调</strong>：只能通过 <code>get()</code> 阻塞等待结果</li>
+<li><strong>无法链式调用</strong>：多个异步任务难以编排</li>
+<li><strong>异常处理不便</strong>：异常只能在 <code>get()</code> 时捕获</li>
+<li><strong>无法手动完成</strong>：任务开始后无法干预</li>
+</ol>
+<h3 id="1-2-CompletableFuture-的优势"><a href="#1-2-CompletableFuture-的优势" class="headerlink" title="1.2 CompletableFuture 的优势"></a>1.2 CompletableFuture 的优势</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    <span class="comment">// 耗时操作</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello, CompletableFuture!&quot;</span>;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 非阻塞回调</span></span><br><span class="line">future.thenAccept(result -&gt; System.out.println(result))</span><br><span class="line">      .exceptionally(ex -&gt; &#123;</span><br><span class="line">          System.err.println(<span class="string">&quot;发生异常: &quot;</span> + ex.getMessage());</span><br><span class="line">          <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">      &#125;);</span><br></pre></td></tr></table></figure>
+<p><strong>核心优势：</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Future</th>
+<th>CompletableFuture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>异步回调</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>链式调用</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>异常处理</td>
+<td>get时捕获</td>
+<td>链式处理</td>
+</tr>
+<tr>
+<td>手动完成</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>多任务组合</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>超时控制</td>
+<td>get(timeout)</td>
+<td>orTimeout/completeOnTimeout</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="2-创建-CompletableFuture"><a href="#2-创建-CompletableFuture" class="headerlink" title="2. 创建 CompletableFuture"></a>2. 创建 CompletableFuture</h2><h3 id="2-1-静态工厂方法"><a href="#2-1-静态工厂方法" class="headerlink" title="2.1 静态工厂方法"></a>2.1 静态工厂方法</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 1. 无返回值的异步任务</span></span><br><span class="line">CompletableFuture&lt;Void&gt; runAsync = CompletableFuture.runAsync(() -&gt; &#123;</span><br><span class="line">    System.out.println(<span class="string">&quot;执行无返回值的异步任务&quot;</span>);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 有返回值的异步任务</span></span><br><span class="line">CompletableFuture&lt;String&gt; supplyAsync = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;返回结果&quot;</span>;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 指定线程池</span></span><br><span class="line"><span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">5</span>);</span><br><span class="line">CompletableFuture&lt;String&gt; withExecutor = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;使用自定义线程池&quot;</span>;</span><br><span class="line">&#125;, executor);</span><br></pre></td></tr></table></figure>
+<h3 id="2-2-手动创建"><a href="#2-2-手动创建" class="headerlink" title="2.2 手动创建"></a>2.2 手动创建</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 1. 创建未完成的 Future</span></span><br><span class="line">CompletableFuture&lt;String&gt; manual = <span class="keyword">new</span> <span class="title class_">CompletableFuture</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在其他地方手动完成</span></span><br><span class="line">manual.complete(<span class="string">&quot;手动设置结果&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 或者手动设置异常</span></span><br><span class="line">manual.completeExceptionally(<span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;手动设置异常&quot;</span>));</span><br></pre></td></tr></table></figure>
+<h3 id="2-3-已知结果创建"><a href="#2-3-已知结果创建" class="headerlink" title="2.3 已知结果创建"></a>2.3 已知结果创建</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 直接创建已完成的结果</span></span><br><span class="line">CompletableFuture&lt;String&gt; completed = CompletableFuture.completedFuture(<span class="string">&quot;已知结果&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 用于测试或默认值</span></span><br><span class="line"><span class="keyword">public</span> CompletableFuture&lt;User&gt; <span class="title function_">getUser</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (id == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> CompletableFuture.completedFuture(User.defaultUser());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> CompletableFuture.supplyAsync(() -&gt; userService.findById(id));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="3-异步计算结果获取"><a href="#3-异步计算结果获取" class="headerlink" title="3. 异步计算结果获取"></a>3. 异步计算结果获取</h2><h3 id="3-1-阻塞获取（不推荐）"><a href="#3-1-阻塞获取（不推荐）" class="headerlink" title="3.1 阻塞获取（不推荐）"></a>3.1 阻塞获取（不推荐）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;结果&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式1: 无限等待</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result1</span> <span class="operator">=</span> future.get();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式2: 超时等待</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result2</span> <span class="operator">=</span> future.get(<span class="number">5</span>, TimeUnit.SECONDS);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式3: 立即获取（未完成返回 null）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result3</span> <span class="operator">=</span> future.getNow(<span class="string">&quot;默认值&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式4: join 不抛受检异常</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result4</span> <span class="operator">=</span> future.join();</span><br></pre></td></tr></table></figure>
+<h3 id="3-2-非阻塞回调（推荐）"><a href="#3-2-非阻塞回调（推荐）" class="headerlink" title="3.2 非阻塞回调（推荐）"></a>3.2 非阻塞回调（推荐）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;Hello&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenAccept: 消费结果，无返回值</span></span><br><span class="line">future.thenAccept(result -&gt; System.out.println(<span class="string">&quot;收到: &quot;</span> + result));</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenApply: 转换结果</span></span><br><span class="line">CompletableFuture&lt;Integer&gt; length = future.thenApply(String::length);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenRun: 不关心结果，执行后续操作</span></span><br><span class="line">future.thenRun(() -&gt; System.out.println(<span class="string">&quot;任务完成&quot;</span>));</span><br></pre></td></tr></table></figure>
+<h3 id="3-3-回调方法对比"><a href="#3-3-回调方法对比" class="headerlink" title="3.3 回调方法对比"></a>3.3 回调方法对比</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>返回值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thenApply</code></td>
+<td>Function<T,R></td>
+<td>CompletableFuture<R></td>
+<td>转换结果</td>
+</tr>
+<tr>
+<td><code>thenAccept</code></td>
+<td>Consumer<T></td>
+<td>CompletableFuture<Void></td>
+<td>消费结果</td>
+</tr>
+<tr>
+<td><code>thenRun</code></td>
+<td>Runnable</td>
+<td>CompletableFuture<Void></td>
+<td>后置动作</td>
+</tr>
+<tr>
+<td><code>whenComplete</code></td>
+<td>BiConsumer<T,Throwable></td>
+<td>CompletableFuture<T></td>
+<td>结果+异常处理</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="4-异步编排核心方法"><a href="#4-异步编排核心方法" class="headerlink" title="4. 异步编排核心方法"></a>4. 异步编排核心方法</h2><h3 id="4-1-thenApply-vs-thenApplyAsync"><a href="#4-1-thenApply-vs-thenApplyAsync" class="headerlink" title="4.1 thenApply vs thenApplyAsync"></a>4.1 thenApply vs thenApplyAsync</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;Hello&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenApply: 在同一线程执行（可能是调用线程或前置任务线程）</span></span><br><span class="line">CompletableFuture&lt;String&gt; sameThread = future.thenApply(s -&gt; s + <span class="string">&quot; World&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenApplyAsync: 在线程池中异步执行</span></span><br><span class="line">CompletableFuture&lt;String&gt; asyncThread = future.thenApplyAsync(s -&gt; s + <span class="string">&quot; World&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenApplyAsync: 使用自定义线程池</span></span><br><span class="line">CompletableFuture&lt;String&gt; customPool = future.thenApplyAsync(</span><br><span class="line">    s -&gt; s + <span class="string">&quot; World&quot;</span>, </span><br><span class="line">    Executors.newFixedThreadPool(<span class="number">5</span>)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p><strong>选择原则：</strong></p>
+<ul>
+<li>轻量操作 → <code>thenApply</code>（减少线程切换开销）</li>
+<li>耗时操作 → <code>thenApplyAsync</code>（避免阻塞当前线程）</li>
+</ul>
+<h3 id="4-2-链式调用示例"><a href="#4-2-链式调用示例" class="headerlink" title="4.2 链式调用示例"></a>4.2 链式调用示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> CompletableFuture&lt;OrderDetail&gt; <span class="title function_">getOrderDetail</span><span class="params">(Long orderId)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> CompletableFuture.supplyAsync(() -&gt; orderService.findById(orderId))</span><br><span class="line">            .thenApplyAsync(order -&gt; &#123;</span><br><span class="line">                <span class="comment">// 转换为详情DTO</span></span><br><span class="line">                <span class="type">OrderDetail</span> <span class="variable">detail</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">OrderDetail</span>();</span><br><span class="line">                detail.setOrder(order);</span><br><span class="line">                <span class="keyword">return</span> detail;</span><br><span class="line">            &#125;)</span><br><span class="line">            .thenComposeAsync(detail -&gt; </span><br><span class="line">                <span class="comment">// 组合另一个异步任务</span></span><br><span class="line">                userService.getUser(detail.getOrder().getUserId())</span><br><span class="line">                    .thenApply(user -&gt; &#123;</span><br><span class="line">                        detail.setUser(user);</span><br><span class="line">                        <span class="keyword">return</span> detail;</span><br><span class="line">                    &#125;)</span><br><span class="line">            )</span><br><span class="line">            .thenCombineAsync(</span><br><span class="line">                <span class="comment">// 与另一个任务并行执行后合并</span></span><br><span class="line">                productService.getProductList(orderId),</span><br><span class="line">                (detail, products) -&gt; &#123;</span><br><span class="line">                    detail.setProducts(products);</span><br><span class="line">                    <span class="keyword">return</span> detail;</span><br><span class="line">                &#125;</span><br><span class="line">            );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="5-异常处理机制"><a href="#5-异常处理机制" class="headerlink" title="5. 异常处理机制"></a>5. 异常处理机制</h2><h3 id="5-1-exceptionally"><a href="#5-1-exceptionally" class="headerlink" title="5.1 exceptionally"></a>5.1 exceptionally</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> (Math.random() &gt; <span class="number">0.5</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;随机异常&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;成功&quot;</span>;</span><br><span class="line">&#125;).exceptionally(ex -&gt; &#123;</span><br><span class="line">    log.error(<span class="string">&quot;任务执行失败&quot;</span>, ex);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;默认值&quot;</span>; <span class="comment">// 返回兜底值</span></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h3 id="5-2-handle"><a href="#5-2-handle" class="headerlink" title="5.2 handle"></a>5.2 handle</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> (Math.random() &gt; <span class="number">0.5</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;异常&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;成功&quot;</span>;</span><br><span class="line">&#125;).handle((result, ex) -&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> (ex != <span class="literal">null</span>) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;异常: &quot;</span>, ex);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;异常恢复值&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result + <span class="string">&quot; - 处理完成&quot;</span>;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h3 id="5-3-whenComplete"><a href="#5-3-whenComplete" class="headerlink" title="5.3 whenComplete"></a>5.3 whenComplete</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;结果&quot;</span>)</span><br><span class="line">    .whenComplete((result, ex) -&gt; &#123;</span><br><span class="line">        <span class="keyword">if</span> (ex != <span class="literal">null</span>) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;执行出错&quot;</span>, ex);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            log.info(<span class="string">&quot;执行成功: &#123;&#125;&quot;</span>, result);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"><span class="comment">// 注意: whenComplete 不会改变结果，只做记录</span></span><br></pre></td></tr></table></figure>
+<h3 id="5-4-异常处理对比"><a href="#5-4-异常处理对比" class="headerlink" title="5.4 异常处理对比"></a>5.4 异常处理对比</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>能否改变返回值</th>
+<th>能否继续链式</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exceptionally</code></td>
+<td>✅ 返回兜底值</td>
+<td>✅</td>
+<td>单点异常恢复</td>
+</tr>
+<tr>
+<td><code>handle</code></td>
+<td>✅ 统一处理</td>
+<td>✅</td>
+<td>统一收尾处理</td>
+</tr>
+<tr>
+<td><code>whenComplete</code></td>
+<td>❌ 只记录</td>
+<td>✅</td>
+<td>日志记录</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="6-多任务组合编排"><a href="#6-多任务组合编排" class="headerlink" title="6. 多任务组合编排"></a>6. 多任务组合编排</h2><h3 id="6-1-thenCompose-任务串联"><a href="#6-1-thenCompose-任务串联" class="headerlink" title="6.1 thenCompose - 任务串联"></a>6.1 thenCompose - 任务串联</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 串联：前一个任务的结果作为后一个任务的输入</span></span><br><span class="line">CompletableFuture&lt;String&gt; result = getUserId()</span><br><span class="line">    .thenCompose(userId -&gt; getUserInfo(userId))</span><br><span class="line">    .thenCompose(userInfo -&gt; getUserPermissions(userInfo));</span><br></pre></td></tr></table></figure>
+<h3 id="6-2-thenCombine-任务并联后合并"><a href="#6-2-thenCombine-任务并联后合并" class="headerlink" title="6.2 thenCombine - 任务并联后合并"></a>6.2 thenCombine - 任务并联后合并</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 并联：两个任务并行执行，结果合并</span></span><br><span class="line">CompletableFuture&lt;String&gt; future1 = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;Hello&quot;</span>);</span><br><span class="line">CompletableFuture&lt;String&gt; future2 = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;World&quot;</span>);</span><br><span class="line"></span><br><span class="line">CompletableFuture&lt;String&gt; combined = future1.thenCombine(future2, (s1, s2) -&gt; s1 + <span class="string">&quot; &quot;</span> + s2);</span><br><span class="line"><span class="comment">// 结果: &quot;Hello World&quot;</span></span><br></pre></td></tr></table></figure>
+<h3 id="6-3-allOf-等待所有任务完成"><a href="#6-3-allOf-等待所有任务完成" class="headerlink" title="6.3 allOf - 等待所有任务完成"></a>6.3 allOf - 等待所有任务完成</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; task1 = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;任务1&quot;</span>);</span><br><span class="line">CompletableFuture&lt;String&gt; task2 = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;任务2&quot;</span>);</span><br><span class="line">CompletableFuture&lt;String&gt; task3 = CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;任务3&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等待所有任务完成</span></span><br><span class="line">CompletableFuture&lt;Void&gt; allTasks = CompletableFuture.allOf(task1, task2, task3);</span><br><span class="line"></span><br><span class="line">allTasks.thenRun(() -&gt; &#123;</span><br><span class="line">    <span class="comment">// 所有任务完成后执行</span></span><br><span class="line">    System.out.println(<span class="string">&quot;所有任务完成&quot;</span>);</span><br><span class="line">    <span class="comment">// 注意: allOf 返回 Void，需要单独获取各任务结果</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">r1</span> <span class="operator">=</span> task1.join();</span><br><span class="line">    <span class="type">String</span> <span class="variable">r2</span> <span class="operator">=</span> task2.join();</span><br><span class="line">    <span class="type">String</span> <span class="variable">r3</span> <span class="operator">=</span> task3.join();</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h3 id="6-4-anyOf-任一任务完成即可"><a href="#6-4-anyOf-任一任务完成即可" class="headerlink" title="6.4 anyOf - 任一任务完成即可"></a>6.4 anyOf - 任一任务完成即可</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">CompletableFuture&lt;String&gt; fastServer = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    simulateDelay(<span class="number">100</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;快速服务器响应&quot;</span>;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">CompletableFuture&lt;String&gt; slowServer = CompletableFuture.supplyAsync(() -&gt; &#123;</span><br><span class="line">    simulateDelay(<span class="number">500</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;慢速服务器响应&quot;</span>;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 返回最快完成的任务结果</span></span><br><span class="line">CompletableFuture&lt;Object&gt; first = CompletableFuture.anyOf(fastServer, slowServer);</span><br><span class="line">System.out.println(first.join()); <span class="comment">// 输出: &quot;快速服务器响应&quot;</span></span><br></pre></td></tr></table></figure>
+<h3 id="6-5-实战：批量并行查询"><a href="#6-5-实战：批量并行查询" class="headerlink" title="6.5 实战：批量并行查询"></a>6.5 实战：批量并行查询</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> CompletableFuture&lt;List&lt;Product&gt;&gt; <span class="title function_">batchGetProducts</span><span class="params">(List&lt;Long&gt; productIds)</span> &#123;</span><br><span class="line">    <span class="comment">// 并行查询所有商品</span></span><br><span class="line">    List&lt;CompletableFuture&lt;Product&gt;&gt; futures = productIds.stream()</span><br><span class="line">        .map(id -&gt; CompletableFuture.supplyAsync(() -&gt; productService.findById(id)))</span><br><span class="line">        .collect(Collectors.toList());</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 等待所有查询完成</span></span><br><span class="line">    <span class="keyword">return</span> CompletableFuture.allOf(futures.toArray(<span class="keyword">new</span> <span class="title class_">CompletableFuture</span>[<span class="number">0</span>]))</span><br><span class="line">        .thenApply(v -&gt; futures.stream()</span><br><span class="line">            .map(CompletableFuture::join)</span><br><span class="line">            .collect(Collectors.toList()));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="7-线程池选择策略"><a href="#7-线程池选择策略" class="headerlink" title="7. 线程池选择策略"></a>7. 线程池选择策略</h2><h3 id="7-1-默认线程池-ForkJoinPool"><a href="#7-1-默认线程池-ForkJoinPool" class="headerlink" title="7.1 默认线程池 ForkJoinPool"></a>7.1 默认线程池 ForkJoinPool</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 不指定线程池时，使用 ForkJoinPool.commonPool()</span></span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; <span class="string">&quot;任务&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p><strong>问题：</strong></p>
+<ul>
+<li><code>commonPool()</code> 是共享的，任务过多会影响其他使用该池的组件</li>
+<li>线程数默认为 <code>CPU核心数 - 1</code>，IO 密集型任务效率低</li>
+</ul>
+<h3 id="7-2-自定义线程池"><a href="#7-2-自定义线程池" class="headerlink" title="7.2 自定义线程池"></a>7.2 自定义线程池</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// IO 密集型任务</span></span><br><span class="line"><span class="type">ExecutorService</span> <span class="variable">ioExecutor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>(</span><br><span class="line">    <span class="number">10</span>, <span class="number">50</span>, <span class="number">60L</span>, TimeUnit.SECONDS,</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">LinkedBlockingQueue</span>&lt;&gt;(<span class="number">1000</span>),</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">ThreadFactoryBuilder</span>().setNameFormat(<span class="string">&quot;io-pool-%d&quot;</span>).build(),</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>.CallerRunsPolicy()</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// CPU 密集型任务</span></span><br><span class="line"><span class="type">ExecutorService</span> <span class="variable">cpuExecutor</span> <span class="operator">=</span> Executors.newFixedThreadPool(</span><br><span class="line">    Runtime.getRuntime().availableProcessors(),</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">ThreadFactoryBuilder</span>().setNameFormat(<span class="string">&quot;cpu-pool-%d&quot;</span>).build()</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用自定义线程池</span></span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; ioOperation(), ioExecutor);</span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; cpuIntensiveTask(), cpuExecutor);</span><br></pre></td></tr></table></figure>
+<h3 id="7-3-Spring-Boot-中的最佳实践"><a href="#7-3-Spring-Boot-中的最佳实践" class="headerlink" title="7.3 Spring Boot 中的最佳实践"></a>7.3 Spring Boot 中的最佳实践</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AsyncConfig</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Bean(&quot;asyncExecutor&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Executor <span class="title function_">asyncExecutor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">ThreadPoolTaskExecutor</span> <span class="variable">executor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolTaskExecutor</span>();</span><br><span class="line">        executor.setCorePoolSize(<span class="number">10</span>);</span><br><span class="line">        executor.setMaxPoolSize(<span class="number">50</span>);</span><br><span class="line">        executor.setQueueCapacity(<span class="number">1000</span>);</span><br><span class="line">        executor.setThreadNamePrefix(<span class="string">&quot;async-&quot;</span>);</span><br><span class="line">        executor.setRejectedExecutionHandler(<span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>.CallerRunsPolicy());</span><br><span class="line">        executor.initialize();</span><br><span class="line">        <span class="keyword">return</span> executor;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">UserService</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="meta">@Qualifier(&quot;asyncExecutor&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> Executor asyncExecutor;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> CompletableFuture&lt;User&gt; <span class="title function_">getUserAsync</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CompletableFuture.supplyAsync(() -&gt; findById(id), asyncExecutor);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="8-实战案例"><a href="#8-实战案例" class="headerlink" title="8. 实战案例"></a>8. 实战案例</h2><h3 id="8-1-商品详情页并行加载"><a href="#8-1-商品详情页并行加载" class="headerlink" title="8.1 商品详情页并行加载"></a>8.1 商品详情页并行加载</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ProductDetailService</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> Executor asyncExecutor;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> CompletableFuture&lt;ProductDetailVO&gt; <span class="title function_">getProductDetail</span><span class="params">(Long productId)</span> &#123;</span><br><span class="line">        <span class="comment">// 基础信息</span></span><br><span class="line">        CompletableFuture&lt;Product&gt; productFuture = CompletableFuture.supplyAsync(</span><br><span class="line">            () -&gt; productService.findById(productId), asyncExecutor);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 评论信息</span></span><br><span class="line">        CompletableFuture&lt;List&lt;Comment&gt;&gt; commentsFuture = CompletableFuture.supplyAsync(</span><br><span class="line">            () -&gt; commentService.findByProductId(productId), asyncExecutor);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 推荐商品</span></span><br><span class="line">        CompletableFuture&lt;List&lt;Product&gt;&gt; recommendsFuture = CompletableFuture.supplyAsync(</span><br><span class="line">            () -&gt; recommendService.getRecommends(productId), asyncExecutor);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 促销信息</span></span><br><span class="line">        CompletableFuture&lt;Promotion&gt; promotionFuture = CompletableFuture.supplyAsync(</span><br><span class="line">            () -&gt; promotionService.getPromotion(productId), asyncExecutor);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 组合所有结果</span></span><br><span class="line">        <span class="keyword">return</span> CompletableFuture.allOf(productFuture, commentsFuture, </span><br><span class="line">                recommendsFuture, promotionFuture)</span><br><span class="line">            .thenApply(v -&gt; &#123;</span><br><span class="line">                <span class="type">ProductDetailVO</span> <span class="variable">detail</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProductDetailVO</span>();</span><br><span class="line">                detail.setProduct(productFuture.join());</span><br><span class="line">                detail.setComments(commentsFuture.join());</span><br><span class="line">                detail.setRecommends(recommendsFuture.join());</span><br><span class="line">                detail.setPromotion(promotionFuture.join());</span><br><span class="line">                <span class="keyword">return</span> detail;</span><br><span class="line">            &#125;)</span><br><span class="line">            .exceptionally(ex -&gt; &#123;</span><br><span class="line">                log.error(<span class="string">&quot;获取商品详情失败: &#123;&#125;&quot;</span>, productId, ex);</span><br><span class="line">                <span class="keyword">return</span> ProductDetailVO.empty();</span><br><span class="line">            &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="8-2-分布式服务调用"><a href="#8-2-分布式服务调用" class="headerlink" title="8.2 分布式服务调用"></a>8.2 分布式服务调用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">OrderAggregationService</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> CompletableFuture&lt;OrderAggregate&gt; <span class="title function_">aggregateOrderInfo</span><span class="params">(String orderId)</span> &#123;</span><br><span class="line">        <span class="comment">// 并行调用多个微服务</span></span><br><span class="line">        CompletableFuture&lt;OrderDTO&gt; orderFuture = orderClient.getOrder(orderId);</span><br><span class="line">        CompletableFuture&lt;UserDTO&gt; userFuture = userClient.getUserByOrder(orderId);</span><br><span class="line">        CompletableFuture&lt;List&lt;OrderItemDTO&gt;&gt; itemsFuture = inventoryClient.getOrderItems(orderId);</span><br><span class="line">        CompletableFuture&lt;PaymentDTO&gt; paymentFuture = paymentClient.getPayment(orderId);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 等待并组装</span></span><br><span class="line">        <span class="keyword">return</span> CompletableFuture.allOf(orderFuture, userFuture, itemsFuture, paymentFuture)</span><br><span class="line">            .thenApply(v -&gt; OrderAggregate.builder()</span><br><span class="line">                .order(orderFuture.join())</span><br><span class="line">                .user(userFuture.join())</span><br><span class="line">                .items(itemsFuture.join())</span><br><span class="line">                .payment(paymentFuture.join())</span><br><span class="line">                .build());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="8-3-带超时控制的调用"><a href="#8-3-带超时控制的调用" class="headerlink" title="8.3 带超时控制的调用"></a>8.3 带超时控制的调用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Java 9+ 超时API</span></span><br><span class="line"><span class="keyword">public</span> CompletableFuture&lt;String&gt; <span class="title function_">fetchWithTimeout</span><span class="params">(String url)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> CompletableFuture.supplyAsync(() -&gt; httpClient.get(url))</span><br><span class="line">        .orTimeout(<span class="number">5</span>, TimeUnit.SECONDS)  <span class="comment">// 超时抛 TimeoutException</span></span><br><span class="line">        .exceptionally(ex -&gt; &#123;</span><br><span class="line">            <span class="keyword">if</span> (ex <span class="keyword">instanceof</span> TimeoutException) &#123;</span><br><span class="line">                log.warn(<span class="string">&quot;请求超时: &#123;&#125;&quot;</span>, url);</span><br><span class="line">                <span class="keyword">return</span> <span class="string">&quot;默认响应&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex);</span><br><span class="line">        &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// completeOnTimeout: 超时返回默认值</span></span><br><span class="line"><span class="keyword">public</span> CompletableFuture&lt;String&gt; <span class="title function_">fetchWithDefault</span><span class="params">(String url)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> CompletableFuture.supplyAsync(() -&gt; httpClient.get(url))</span><br><span class="line">        .completeOnTimeout(<span class="string">&quot;默认响应&quot;</span>, <span class="number">3</span>, TimeUnit.SECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="9-最佳实践与避坑指南"><a href="#9-最佳实践与避坑指南" class="headerlink" title="9. 最佳实践与避坑指南"></a>9. 最佳实践与避坑指南</h2><h3 id="9-1-线程池隔离"><a href="#9-1-线程池隔离" class="headerlink" title="9.1 线程池隔离"></a>9.1 线程池隔离</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ❌ 错误：所有任务共用 ForkJoinPool.commonPool()</span></span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; heavyIO());</span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; cpuTask());</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 正确：不同类型任务使用独立线程池</span></span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; heavyIO(), ioExecutor);</span><br><span class="line">CompletableFuture.supplyAsync(() -&gt; cpuTask(), cpuExecutor);</span><br></pre></td></tr></table></figure>
+<h3 id="9-2-异常链不要断"><a href="#9-2-异常链不要断" class="headerlink" title="9.2 异常链不要断"></a>9.2 异常链不要断</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ❌ 错误：异常被吞掉</span></span><br><span class="line">future.thenApply(result -&gt; &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> transform(result);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;  <span class="comment">// 异常信息丢失</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 正确：使用 exceptionally 或 handle</span></span><br><span class="line">future.thenApply(result -&gt; transform(result))</span><br><span class="line">      .exceptionally(ex -&gt; &#123;</span><br><span class="line">          log.error(<span class="string">&quot;转换失败&quot;</span>, ex);</span><br><span class="line">          <span class="keyword">return</span> DefaultValue.INSTANCE;</span><br><span class="line">      &#125;);</span><br></pre></td></tr></table></figure>
+<h3 id="9-3-避免阻塞操作"><a href="#9-3-避免阻塞操作" class="headerlink" title="9.3 避免阻塞操作"></a>9.3 避免阻塞操作</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ❌ 错误：在异步链中阻塞</span></span><br><span class="line">future.thenApply(result -&gt; &#123;</span><br><span class="line">    <span class="keyword">return</span> blockingCall();  <span class="comment">// 阻塞线程池线程</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 正确：继续异步化</span></span><br><span class="line">future.thenCompose(result -&gt; CompletableFuture.supplyAsync(() -&gt; blockingCall()));</span><br></pre></td></tr></table></figure>
+<h3 id="9-4-合理使用-thenApply-vs-thenCompose"><a href="#9-4-合理使用-thenApply-vs-thenCompose" class="headerlink" title="9.4 合理使用 thenApply vs thenCompose"></a>9.4 合理使用 thenApply vs thenCompose</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// thenApply: 当后继操作是同步的</span></span><br><span class="line">CompletableFuture&lt;Integer&gt; length = future.thenApply(String::length);</span><br><span class="line"></span><br><span class="line"><span class="comment">// thenCompose: 当后继操作返回 CompletableFuture</span></span><br><span class="line">CompletableFuture&lt;User&gt; userFuture = future.thenCompose(id -&gt; getUserAsync(id));</span><br></pre></td></tr></table></figure>
+<h3 id="9-5-资源清理"><a href="#9-5-资源清理" class="headerlink" title="9.5 资源清理"></a>9.5 资源清理</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">10</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(task, executor);</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    executor.shutdown();  <span class="comment">// 记得关闭线程池</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="10-总结"><a href="#10-总结" class="headerlink" title="10. 总结"></a>10. 总结</h2><h3 id="CompletableFuture-核心要点"><a href="#CompletableFuture-核心要点" class="headerlink" title="CompletableFuture 核心要点"></a>CompletableFuture 核心要点</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>简单异步计算</td>
+<td><code>supplyAsync</code> / <code>runAsync</code></td>
+</tr>
+<tr>
+<td>结果转换</td>
+<td><code>thenApply</code> / <code>thenApplyAsync</code></td>
+</tr>
+<tr>
+<td>结果消费</td>
+<td><code>thenAccept</code></td>
+</tr>
+<tr>
+<td>任务串联</td>
+<td><code>thenCompose</code></td>
+</tr>
+<tr>
+<td>任务并联合并</td>
+<td><code>thenCombine</code></td>
+</tr>
+<tr>
+<td>等待所有</td>
+<td><code>allOf</code></td>
+</tr>
+<tr>
+<td>等任一</td>
+<td><code>anyOf</code></td>
+</tr>
+<tr>
+<td>异常恢复</td>
+<td><code>exceptionally</code></td>
+</tr>
+<tr>
+<td>统一收尾</td>
+<td><code>handle</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="性能优化建议"><a href="#性能优化建议" class="headerlink" title="性能优化建议"></a>性能优化建议</h3><ol>
+<li><strong>IO 密集型任务</strong>：使用大线程池（线程数 ≈ CPU × 2 + 1）</li>
+<li><strong>CPU 密集型任务</strong>：使用小线程池（线程数 ≈ CPU + 1）</li>
+<li><strong>合理设置队列</strong>：避免队列过长导致任务堆积</li>
+<li><strong>拒绝策略</strong>：<code>CallerRunsPolicy</code> 可以起到削峰作用</li>
+<li><strong>监控指标</strong>：关注线程池活跃线程数、队列长度</li>
+</ol>
+<p>CompletableFuture 让异步编程变得优雅，但也需要谨慎使用。理解其原理，遵循最佳实践，才能真正发挥它的威力！</p>
+<hr>
+<blockquote>
+<p>📸 <strong>封面图片来源</strong>: <a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&amp;q=80">Unsplash</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>并发编程</category>
+      </categories>
+      <tags>
+        <tag>Java</tag>
+        <tag>并发</tag>
+        <tag>CompletableFuture</tag>
+        <tag>异步编程</tag>
+      </tags>
+  </entry>
 </search>
