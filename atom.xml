@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-09T00:36:34.133Z</updated>
+  <updated>2026-04-10T03:18:44.442Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>ConcurrentHashMap 1.7 与 1.8 区别</title>
+    <link href="https://erdong27.github.io/2026/04/10/2026-04-10-ConcurrentHashMap-1.7%E4%B8%8E1.8%E5%8C%BA%E5%88%AB/"/>
+    <id>https://erdong27.github.io/2026/04/10/2026-04-10-ConcurrentHashMap-1.7%E4%B8%8E1.8%E5%8C%BA%E5%88%AB/</id>
+    <published>2026-04-10T10:00:00.000Z</published>
+    <updated>2026-04-10T03:18:44.442Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;ConcurrentHashMap-1-7-与-1-8-区别&quot;&gt;&lt;a href=&quot;#ConcurrentHashMap-1-7-与-1-8-区别&quot; class=&quot;headerlink&quot; title=&quot;ConcurrentHashMap 1.7 与 1.8</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    
+    
+    <category term="源码分析" scheme="https://erdong27.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
+    
+    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
+    
+    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+    <category term="ConcurrentHashMap" scheme="https://erdong27.github.io/tags/ConcurrentHashMap/"/>
+    
+  </entry>
   
   <entry>
     <title>ReentrantLock 源码级分析</title>
@@ -561,36 +594,6 @@
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
 &lt;h1 id=&quot;RESP协议&quot;&gt;&lt;a href=&quot;#RESP协议&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="数据库" scheme="https://erdong27.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/"/>
-    
-    
-    <category term="Redis" scheme="https://erdong27.github.io/tags/Redis/"/>
-    
-    <category term="NOSQL" scheme="https://erdong27.github.io/tags/NOSQL/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Redis内存策略</title>
-    <link href="https://erdong27.github.io/2024/07/17/Redis%E5%86%85%E5%AD%98%E7%AD%96%E7%95%A5/"/>
-    <id>https://erdong27.github.io/2024/07/17/Redis%E5%86%85%E5%AD%98%E7%AD%96%E7%95%A5/</id>
-    <published>2024-07-17T11:40:06.000Z</published>
-    <updated>2024-07-17T11:40:06.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;blockquote&gt;
-&lt;p&gt;[!Note]&lt;/p&gt;
-&lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;h1 id=&quot;Redis内存策略&quot;&gt;&lt;a href=&quot;#Redis内存策略&quot; class=&quot;headerlink&quot;</summary>
         
       
     
