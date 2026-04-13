@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-10T03:18:44.442Z</updated>
+  <updated>2026-04-13T00:38:43.757Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>ThreadLocal 内存泄漏问题与解决方案</title>
+    <link href="https://erdong27.github.io/2026/04/13/2026-04-13-ThreadLocal%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/"/>
+    <id>https://erdong27.github.io/2026/04/13/2026-04-13-ThreadLocal%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/</id>
+    <published>2026-04-13T10:00:00.000Z</published>
+    <updated>2026-04-13T00:38:43.757Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;ThreadLocal-内存泄漏问题与解决方案&quot;&gt;&lt;a href=&quot;#ThreadLocal-内存泄漏问题与解决方案&quot; class=&quot;headerlink&quot; title=&quot;ThreadLocal 内存泄漏问题与解决方案&quot;&gt;&lt;/a&gt;ThreadLocal</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
+    
+    
+    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    <category term="ThreadLocal" scheme="https://erdong27.github.io/tags/ThreadLocal/"/>
+    
+    <category term="内存泄漏" scheme="https://erdong27.github.io/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"/>
+    
+  </entry>
   
   <entry>
     <title>ConcurrentHashMap 1.7 与 1.8 区别</title>
@@ -41,11 +74,11 @@
     
     <category term="源码分析" scheme="https://erdong27.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
     
-    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
     <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
     
     <category term="ConcurrentHashMap" scheme="https://erdong27.github.io/tags/ConcurrentHashMap/"/>
+    
+    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
     
   </entry>
   
@@ -60,8 +93,8 @@
     <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
 &lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 &amp;#x2F; 11 &amp;#x2F; 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 &amp;#x2F; OpenJDK 11.0.22 &amp;#x2F; OpenJDK 17.0.10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 / OpenJDK 11.0.22 / OpenJDK 17.0.10&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;并发包&lt;/strong&gt;: java.util.concurrent (JUC) — 随 JDK 版本内置&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/blockquote&gt;</summary>
@@ -140,9 +173,9 @@
     <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
     <category term="ThreadPoolExecutor" scheme="https://erdong27.github.io/tags/ThreadPoolExecutor/"/>
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
     <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
     
@@ -393,9 +426,9 @@
     <category term="Spring" scheme="https://erdong27.github.io/categories/Java/Spring/"/>
     
     
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
     
     <category term="Autowired" scheme="https://erdong27.github.io/tags/Autowired/"/>
     
@@ -564,36 +597,6 @@
 &lt;p&gt;[!Note]&lt;/p&gt;
 &lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
 &lt;h1 id=&quot;Redis网络模型&quot;&gt;&lt;a href=&quot;#Redis网络模型&quot; class=&quot;headerlink&quot;</summary>
-        
-      
-    
-    
-    
-    <category term="数据库" scheme="https://erdong27.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/"/>
-    
-    
-    <category term="Redis" scheme="https://erdong27.github.io/tags/Redis/"/>
-    
-    <category term="NOSQL" scheme="https://erdong27.github.io/tags/NOSQL/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>RESP协议</title>
-    <link href="https://erdong27.github.io/2024/07/17/RESP%E5%8D%8F%E8%AE%AE/"/>
-    <id>https://erdong27.github.io/2024/07/17/RESP%E5%8D%8F%E8%AE%AE/</id>
-    <published>2024-07-17T11:40:23.000Z</published>
-    <updated>2024-07-17T11:40:23.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;blockquote&gt;
-&lt;p&gt;[!Note]&lt;/p&gt;
-&lt;p&gt;本文基于Redis6.2.6&lt;/p&gt;
-&lt;h1 id=&quot;RESP协议&quot;&gt;&lt;a href=&quot;#RESP协议&quot; class=&quot;headerlink&quot;</summary>
         
       
     
