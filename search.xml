@@ -4384,4 +4384,328 @@
         <tag>线程池</tag>
       </tags>
   </entry>
+  <entry>
+    <title>JVM内存模型与垃圾回收算法</title>
+    <url>/2026/04/15/2026-04-15-JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95/</url>
+    <content><![CDATA[<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>JDK</strong>: 8 &#x2F; 11 &#x2F; 17</li>
+<li><strong>JVM</strong>: HotSpot</li>
+<li><strong>GC</strong>: 基于 G1 和 ZGC 讲解</li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Java 之所以能够”一次编写，到处运行”，很大程度上得益于 JVM（Java Virtual Machine）的抽象。与 C&#x2F;C++ 需要手动管理内存不同，Java 通过自动垃圾回收（Garbage Collection，简称 GC）让开发者从内存管理的繁琐中解放出来。但理解 JVM 内存模型和 GC 原理，是写出高性能 Java 应用的基础。</p>
+<p>本文将深入剖析 JVM 内存模型的结构、各个区域的作用，以及主流垃圾回收算法的核心思想。</p>
+<h2 id="一、JVM-内存模型（JMM）结构"><a href="#一、JVM-内存模型（JMM）结构" class="headerlink" title="一、JVM 内存模型（JMM）结构"></a>一、JVM 内存模型（JMM）结构</h2><p>JVM 在运行期间，会把所管理的内存划分为若干个不同的数据区域。根据《Java 虚拟机规范 SE 8》，整体结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        JVM Process                          │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │                   Run-Time Data Areas               │    │</span><br><span class="line">│  │                                                      │    │</span><br><span class="line">│  │  ┌──────────────┐  ┌──────────────┐                │    │</span><br><span class="line">│  │  │   Heap       │  │  Method Area  │                │    │</span><br><span class="line">│  │  │  (共享)      │  │  (共享)       │                │    │</span><br><span class="line">│  │  │              │  │              │                │    │</span><br><span class="line">│  │  │ ┌──────────┐ │  │ ┌──────────┐ │  ┌─────────┐ │    │</span><br><span class="line">│  │  │ │ Eden     │ │  │ │ Code Cache│ │  │  PC Reg │ │    │</span><br><span class="line">│  │  │ │ Survivor │ │  │ │ (Non-Heap)│ │  │ (线程私有)│ │    │</span><br><span class="line">│  │  │ │ From/To  │ │  │ └──────────┘ │  └─────────┘ │    │</span><br><span class="line">│  │  │ └──────────┘ │  │               │                │    │</span><br><span class="line">│  │  │ ┌──────────┐ │  │               │                │    │</span><br><span class="line">│  │  │ │ Old Gen  │ │  │               │                │    │</span><br><span class="line">│  │  │ └──────────┘ │  │               │                │    │</span><br><span class="line">│  │  └──────────────┘  └──────────────┘                │    │</span><br><span class="line">│  │                                                      │    │</span><br><span class="line">│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐         │    │</span><br><span class="line">│  │  │ JVM Stack│  │Native M.S│  │  Native   │         │    │</span><br><span class="line">│  │  │(线程私有)│  │(系统栈)  │  │  Method   │         │    │</span><br><span class="line">│  │  └──────────┘  └──────────┘  └──────────┘         │    │</span><br><span class="line">│  └─────────────────────────────────────────────────────┘    │</span><br><span class="line">└─────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-1-线程私有区域"><a href="#1-1-线程私有区域" class="headerlink" title="1.1 线程私有区域"></a>1.1 线程私有区域</h3><p>这些区域随线程的创建而创建，随线程的销毁而回收，不存在垃圾回收问题。</p>
+<h4 id="程序计数器（Program-Counter-Register）"><a href="#程序计数器（Program-Counter-Register）" class="headerlink" title="程序计数器（Program Counter Register）"></a>程序计数器（Program Counter Register）</h4><ul>
+<li>当前线程所执行的字节码行号指示器</li>
+<li>如果线程正在执行 Java 方法，记录的是正在执行的虚拟机字节码指令地址</li>
+<li>如果是 Native 方法，则为空（Undefined）</li>
+<li>唯一一块不会发生 OutOfMemoryError 的区域</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 示例：程序计数器的作用</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PCCounterDemo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">1</span>;      <span class="comment">// PC = 0</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">b</span> <span class="operator">=</span> <span class="number">2</span>;      <span class="comment">// PC = 1</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">c</span> <span class="operator">=</span> a + b;  <span class="comment">// PC = 2</span></span><br><span class="line">        System.out.println(c); <span class="comment">// PC = 3</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="虚拟机栈（VM-Stack）"><a href="#虚拟机栈（VM-Stack）" class="headerlink" title="虚拟机栈（VM Stack）"></a>虚拟机栈（VM Stack）</h4><ul>
+<li>每个线程拥有一个私有的虚拟机栈</li>
+<li>存储局部变量表、操作数栈、动态链接、方法返回地址等信息</li>
+<li>每个方法调用对应一个栈帧（Stack Frame）</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StackFrameDemo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">calculate</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">10</span>;      <span class="comment">// 局部变量表 slot 0</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">b</span> <span class="operator">=</span> <span class="number">20</span>;      <span class="comment">// 局部变量表 slot 1</span></span><br><span class="line">        <span class="keyword">return</span> a + b;    <span class="comment">// 操作数栈</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">result</span> <span class="operator">=</span> calculate(); <span class="comment">// 调用另一个方法</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>常见异常</strong>：</p>
+<ul>
+<li><code>StackOverflowError</code>：栈深度超出允许范围（递归调用没有正确终止）</li>
+<li><code>OutOfMemoryError</code>：无法申请足够的内存（线程数量过多）</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 栈溢出示例</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StackOverflowDemo</span> &#123;</span><br><span class="line">    <span class="comment">// 无限递归会导致 StackOverflowError</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">recursive</span><span class="params">()</span> &#123;</span><br><span class="line">        count++;</span><br><span class="line">        recursive(); <span class="comment">// 没有终止条件</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            recursive();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (StackOverflowError e) &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;栈溢出！递归次数: &quot;</span> + count);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="本地方法栈（Native-Method-Stack）"><a href="#本地方法栈（Native-Method-Stack）" class="headerlink" title="本地方法栈（Native Method Stack）"></a>本地方法栈（Native Method Stack）</h4><ul>
+<li>为 JVM 使用到的 Native 方法（如 JNI 调用）服务</li>
+<li>HotSpot 将虚拟机栈和本地方法栈合并实现</li>
+</ul>
+<h3 id="1-2-线程共享区域"><a href="#1-2-线程共享区域" class="headerlink" title="1.2 线程共享区域"></a>1.2 线程共享区域</h3><p>这些区域被所有线程共享，是垃圾回收的主要关注点。</p>
+<h4 id="堆（Heap）"><a href="#堆（Heap）" class="headerlink" title="堆（Heap）"></a>堆（Heap）</h4><ul>
+<li>JVM 管理内存中最大的一块</li>
+<li>几乎所有对象实例和数组都在这里分配</li>
+<li>是垃圾回收的主要管理区域，因此也称为 “GC 堆”</li>
+</ul>
+<p>堆的内部结构（JDK 8+ 默认 G1 收集器）：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────┐</span><br><span class="line">│                         Heap                             │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────┐ │</span><br><span class="line">│  │                   Young Generation                  │ │</span><br><span class="line">│  │  ┌────────────┐  ┌──────────┐  ┌──────────┐        │ │</span><br><span class="line">│  │  │    Eden    │  │ Survivor │  │ Survivor │        │ │</span><br><span class="line">│  │  │    (E)     │  │    S0    │  │    S1    │        │ │</span><br><span class="line">│  │  │            │  │  (From)  │  │   (To)   │        │ │</span><br><span class="line">│  │  └────────────┘  └──────────┘  └──────────┘        │ │</span><br><span class="line">│  │                     1/3                             │ │</span><br><span class="line">│  └─────────────────────────────────────────────────────┘ │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────┐ │</span><br><span class="line">│  │                   Old Generation                    │ │</span><br><span class="line">│  │                      2/3                            │ │</span><br><span class="line">│  └─────────────────────────────────────────────────────┘ │</span><br><span class="line">└──────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置参数</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 初始堆大小</span></span><br><span class="line">-Xms256m</span><br><span class="line"><span class="comment"># 最大堆大小</span></span><br><span class="line">-Xmx512m</span><br><span class="line"><span class="comment"># 新生代大小</span></span><br><span class="line">-Xmn128m</span><br><span class="line"><span class="comment"># Eden区和Survivor区比例</span></span><br><span class="line">-XX:SurvivorRatio=8</span><br></pre></td></tr></table></figure>
+
+<h4 id="方法区（Method-Area）"><a href="#方法区（Method-Area）" class="headerlink" title="方法区（Method Area）"></a>方法区（Method Area）</h4><ul>
+<li>存储类信息（类的版本、字段、方法、构造函数）、常量、静态变量、JIT 编译后的代码等</li>
+<li>JDK 8 之前使用永久代（PermGen）实现</li>
+<li>JDK 8 开始使用元空间（Metaspace），使用本地内存</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MethodAreaDemo</span> &#123;</span><br><span class="line">    <span class="comment">// 静态变量 - 存储在方法区</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">CONSTANT</span> <span class="operator">=</span> <span class="number">100</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 静态方法 - 存储在方法区</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">staticMethod</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;静态方法&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 实例变量 - 存储在堆中</span></span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置参数</strong>（JDK 8+）：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 元空间初始大小</span></span><br><span class="line">-XX:MetaspaceSize=128m</span><br><span class="line"><span class="comment"># 元空间最大大小（-1表示无限制）</span></span><br><span class="line">-XX:MaxMetaspaceSize=256m</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、对象创建与内存分配"><a href="#二、对象创建与内存分配" class="headerlink" title="二、对象创建与内存分配"></a>二、对象创建与内存分配</h2><h3 id="2-1-对象的创建过程"><a href="#2-1-对象的创建过程" class="headerlink" title="2.1 对象的创建过程"></a>2.1 对象的创建过程</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 类加载检查</span><br><span class="line">   ↓</span><br><span class="line">2. 分配内存（指针碰撞 / 空闲列表）</span><br><span class="line">   ↓</span><br><span class="line">3. 初始化零值</span><br><span class="line">   ↓</span><br><span class="line">4. 设置对象头</span><br><span class="line">   ↓</span><br><span class="line">5. 执行构造函数</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ObjectCreation</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> id;       <span class="comment">// 默认为0</span></span><br><span class="line">    <span class="keyword">private</span> String name;  <span class="comment">// 默认为null</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ObjectCreation</span><span class="params">(<span class="type">int</span> id, String name)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.id = id;     <span class="comment">// 构造函数中赋值</span></span><br><span class="line">        <span class="built_in">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建对象时：</span></span><br><span class="line"><span class="type">ObjectCreation</span> <span class="variable">obj</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectCreation</span>(<span class="number">1</span>, <span class="string">&quot;Test&quot;</span>);</span><br><span class="line"><span class="comment">// 1. 类加载检查：检查常量池中是否有 ObjectCreation 的符号引用</span></span><br><span class="line"><span class="comment">// 2. 分配内存：在堆中分配所需内存</span></span><br><span class="line"><span class="comment">// 3. 初始化零值：id=0, name=null</span></span><br><span class="line"><span class="comment">// 4. 设置对象头：Mark Word、类型指针等</span></span><br><span class="line"><span class="comment">// 5. 执行构造函数：id=1, name=&quot;Test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-内存分配算法"><a href="#2-2-内存分配算法" class="headerlink" title="2.2 内存分配算法"></a>2.2 内存分配算法</h3><h4 id="指针碰撞（Bump-the-Pointer）"><a href="#指针碰撞（Bump-the-Pointer）" class="headerlink" title="指针碰撞（Bump the Pointer）"></a>指针碰撞（Bump the Pointer）</h4><p>适用场景：堆内存规整（没有碎片）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">分配前:                    分配后:</span><br><span class="line">┌────────┬────────┐       ┌────────┬────────┬────────┐</span><br><span class="line">│ 已使用 │ 已使用 │       │ 已使用 │ 已使用 │  新对象 │</span><br><span class="line">└────────┴────────┘       └────────┴────────┴────────┘</span><br><span class="line">     ↑                           ↑</span><br><span class="line">   指针                          指针移动</span><br></pre></td></tr></table></figure>
+
+<h4 id="空闲列表（Free-List）"><a href="#空闲列表（Free-List）" class="headerlink" title="空闲列表（Free List）"></a>空闲列表（Free List）</h4><p>适用场景：堆内存不规整（存在碎片）</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 空闲列表示例</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FreeListDemo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 模拟空闲列表管理</span></span><br><span class="line">        List&lt;MemoryBlock&gt; freeList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        freeList.add(<span class="keyword">new</span> <span class="title class_">MemoryBlock</span>(<span class="number">0</span>, <span class="number">100</span>));</span><br><span class="line">        freeList.add(<span class="keyword">new</span> <span class="title class_">MemoryBlock</span>(<span class="number">200</span>, <span class="number">50</span>));</span><br><span class="line">        freeList.add(<span class="keyword">new</span> <span class="title class_">MemoryBlock</span>(<span class="number">300</span>, <span class="number">80</span>));</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 分配时查找合适的内存块</span></span><br><span class="line">        <span class="type">MemoryBlock</span> <span class="variable">block</span> <span class="operator">=</span> findSuitableBlock(freeList, <span class="number">30</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;找到空闲块: &quot;</span> + block);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-线程安全问题"><a href="#2-3-线程安全问题" class="headerlink" title="2.3 线程安全问题"></a>2.3 线程安全问题</h3><p>由于多个线程可能同时在堆上分配对象，需要解决并发问题。</p>
+<h4 id="CAS-失败重试"><a href="#CAS-失败重试" class="headerlink" title="CAS + 失败重试"></a>CAS + 失败重试</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 模拟 CAS 分配</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CASAllocation</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">AtomicInteger</span> <span class="variable">top</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AtomicInteger</span>(<span class="number">0</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="title function_">allocate</span><span class="params">(<span class="type">int</span> size)</span> &#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">current</span> <span class="operator">=</span> top.get();</span><br><span class="line">            <span class="type">int</span> <span class="variable">next</span> <span class="operator">=</span> current + size;</span><br><span class="line">            <span class="comment">// CAS 操作：比较并交换</span></span><br><span class="line">            <span class="keyword">if</span> (top.compareAndSet(current, next)) &#123;</span><br><span class="line">                <span class="keyword">return</span> current;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 失败重试</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="TLAB（Thread-Local-Allocation-Buffer）"><a href="#TLAB（Thread-Local-Allocation-Buffer）" class="headerlink" title="TLAB（Thread Local Allocation Buffer）"></a>TLAB（Thread Local Allocation Buffer）</h4><ul>
+<li>为每个线程预分配一块 Eden 区内存</li>
+<li>线程优先在 TLAB 中分配，避免同步开销</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 开启 TLAB（默认开启）</span></span><br><span class="line">-XX:+UseTLAB</span><br><span class="line"><span class="comment"># TLAB 大小</span></span><br><span class="line">-XX:TLABSize=100k</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、垃圾回收算法"><a href="#三、垃圾回收算法" class="headerlink" title="三、垃圾回收算法"></a>三、垃圾回收算法</h2><h3 id="3-1-判断对象是否存活的算法"><a href="#3-1-判断对象是否存活的算法" class="headerlink" title="3.1 判断对象是否存活的算法"></a>3.1 判断对象是否存活的算法</h3><h4 id="引用计数算法（Reference-Counting）"><a href="#引用计数算法（Reference-Counting）" class="headerlink" title="引用计数算法（Reference Counting）"></a>引用计数算法（Reference Counting）</h4><p>每个对象有一个引用计数器，引用+1，失效-1。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 伪代码示例</span></span><br><span class="line"><span class="built_in">object</span>.ref_count = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_reference</span>(<span class="params">obj</span>):</span><br><span class="line">    obj.ref_count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">remove_reference</span>(<span class="params">obj</span>):</span><br><span class="line">    obj.ref_count -= <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> obj.ref_count == <span class="number">0</span>:</span><br><span class="line">        collect_object(obj)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 缺点：无法处理循环引用</span></span><br><span class="line">obj1.ref = obj2</span><br><span class="line">obj2.ref = obj1</span><br><span class="line"><span class="comment"># obj1 和 obj2 都不被外部引用，但 ref_count 都为 1</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>问题</strong>：无法处理循环引用！</p>
+<h4 id="可达性分析算法（Reachability-Analysis）"><a href="#可达性分析算法（Reachability-Analysis）" class="headerlink" title="可达性分析算法（Reachability Analysis）"></a>可达性分析算法（Reachability Analysis）</h4><p>从 GC Roots 出发，向下搜索，搜索路径称为”引用链”。</p>
+<p><strong>GC Roots 包括</strong>：</p>
+<ul>
+<li>虚拟机栈中引用的对象</li>
+<li>方法区中类静态属性引用的对象</li>
+<li>方法区中常量引用的对象</li>
+<li>本地方法栈中 JNI 引用的对象</li>
+<li>JVM 内部引用（ClassLoader、异常对象等）</li>
+<li>同步锁持有的对象</li>
+<li>反映 JVM 内部情况的 JMXBean、Callback 等</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GC</span> RootsDemo &#123;</span><br><span class="line">    <span class="comment">// GC Root 示例</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Object</span> <span class="variable">staticObj</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();  <span class="comment">// 类静态属性 - GC Root</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Object</span> <span class="variable">constObj</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();    <span class="comment">// 常量 - GC Root</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">method</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">localObj</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();  <span class="comment">// 局部变量 - GC Root（栈帧中）</span></span><br><span class="line">        System.out.println(localObj);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">      GC Root</span><br><span class="line">         │</span><br><span class="line">  ┌──────┼──────┐</span><br><span class="line">  ▼      ▼      ▼</span><br><span class="line">┌──┐   ┌──┐   ┌──┐</span><br><span class="line">│A │──▶│B │   │C │  ◀── 可达对象</span><br><span class="line">└──┘   └──┘   └──┘</span><br><span class="line">  │      │</span><br><span class="line">  ▼      ▼</span><br><span class="line">┌──┐   ┌──┐</span><br><span class="line">│D │   │E │──┐</span><br><span class="line">└──┘   └──┘  │</span><br><span class="line">  │      │   │  循环引用</span><br><span class="line">  └──────┴───┘  ◀── 不可达对象，可回收</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-垃圾回收算法"><a href="#3-2-垃圾回收算法" class="headerlink" title="3.2 垃圾回收算法"></a>3.2 垃圾回收算法</h3><h4 id="标记-清除算法（Mark-Sweep）"><a href="#标记-清除算法（Mark-Sweep）" class="headerlink" title="标记-清除算法（Mark-Sweep）"></a>标记-清除算法（Mark-Sweep）</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">标记阶段:                 清除阶段:</span><br><span class="line">┌─────────────┐          ┌─────────────┐</span><br><span class="line">│ ■ ■ ■ ■ ■ ■│ 标记存活  │ □ □ □ □ □ □│ 清除死亡</span><br><span class="line">│ ■ ■ ■ □ □ ■│          │ □ □ □ ■ □ □│</span><br><span class="line">└─────────────┘          └─────────────┘</span><br><span class="line"></span><br><span class="line">■ = 存活对象   □ = 已清除   ■ = 未标记（待清除）</span><br></pre></td></tr></table></figure>
+
+<p><strong>缺点</strong>：</p>
+<ul>
+<li>效率不稳定</li>
+<li>产生内存碎片</li>
+</ul>
+<h4 id="复制算法（Copying）"><a href="#复制算法（Copying）" class="headerlink" title="复制算法（Copying）"></a>复制算法（Copying）</h4><p>将内存分为两块，每次只使用一块。存活对象复制到另一块，然后整块清除。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">    内存区域</span><br><span class="line">┌───────┬───────┐</span><br><span class="line">│  Area │  Area │    使用比例 1:1</span><br><span class="line">│   A   │   B   │</span><br><span class="line">└───────┴───────┘</span><br><span class="line">     ↓</span><br><span class="line">┌───────┬───────┐</span><br><span class="line">│ ■ ■ ■ │ □□□□□ │    存活对象复制到 B</span><br><span class="line">│ ■ □ ■ │ □□□□□ │</span><br><span class="line">└───────┴───────┘</span><br><span class="line">     ↓</span><br><span class="line">┌───────┬───────┐</span><br><span class="line">│ □□□□□ │ ■ ■ ■ │    清空 A</span><br><span class="line">│ □□□□□ │ ■ □ ■ │</span><br><span class="line">└───────┴───────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点</strong>：无碎片，效率高<br><strong>缺点</strong>：可用内存减半</p>
+<p><strong>实际应用</strong>：新生代的 Eden 区和 Survivor 区</p>
+<h4 id="标记-整理算法（Mark-Compact）"><a href="#标记-整理算法（Mark-Compact）" class="headerlink" title="标记-整理算法（Mark-Compact）"></a>标记-整理算法（Mark-Compact）</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">标记阶段:                 整理阶段:                清理阶段:</span><br><span class="line">┌─────────────┐          ┌─────────────┐          ┌─────────────┐</span><br><span class="line">│ ■ ■ ■ □ □ ■│ 存活     │ ■ ■ ■ ■ ■ ■│ 移动存活   │ ■ ■ ■ ■ ■ ■│</span><br><span class="line">│ ■ ■ □ □ □ ■│ 标记     │ □ □ □ □ □ □│ 对象到一端 │ □ □ □ □ □ □│</span><br><span class="line">└─────────────┘          └─────────────┘          └─────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点</strong>：无碎片，内存利用率高<br><strong>缺点</strong>：移动成本高，需要更新引用</p>
+<h4 id="分代收集算法（Generational-Collection）"><a href="#分代收集算法（Generational-Collection）" class="headerlink" title="分代收集算法（Generational Collection）"></a>分代收集算法（Generational Collection）</h4><p>当前主流 JVM 采用的策略，根据对象生命周期特点分区处理：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────┐</span><br><span class="line">│           分代收集策略                   │</span><br><span class="line">├─────────────────┬───────────────────────┤</span><br><span class="line">│    新生代        │      老年代           │</span><br><span class="line">│  (Young Gen)     │   (Old/Tenured Gen)   │</span><br><span class="line">├─────────────────┼───────────────────────┤</span><br><span class="line">│ Eden (8)         │                       │</span><br><span class="line">│ S0 (1) + S1 (1)  │     标记-整理          │</span><br><span class="line">│                  │                       │</span><br><span class="line">│  复制算法        │                       │</span><br><span class="line">│  (大量死亡)      │    标记-整理/清除      │</span><br><span class="line">│                  │    (长期存活)          │</span><br><span class="line">└─────────────────┴───────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>Minor GC（Minor GC&#x2F;Young GC）</strong>：</p>
+<ul>
+<li>发生在新生代</li>
+<li>对象优先在 Eden 分配</li>
+<li>Survivor 区满时触发</li>
+<li>频率高，停顿时间短</li>
+</ul>
+<p><strong>Major GC&#x2F;Full GC</strong>：</p>
+<ul>
+<li>发生在老年代</li>
+<li>Major GC 通常伴随 Minor GC</li>
+<li>频率低，但停顿时间长</li>
+</ul>
+<h2 id="四、垃圾收集器"><a href="#四、垃圾收集器" class="headerlink" title="四、垃圾收集器"></a>四、垃圾收集器</h2><h3 id="4-1-收集器关系图"><a href="#4-1-收集器关系图" class="headerlink" title="4.1 收集器关系图"></a>4.1 收集器关系图</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                         JVM GC                                  │</span><br><span class="line">│                                                                 │</span><br><span class="line">│   ┌─────────┐     ┌─────────┐     ┌─────────┐                  │</span><br><span class="line">│   │ Serial  │────▶│  ParNew │────▶│Parallel │                  │</span><br><span class="line">│   │  (STW)  │     │ (STW)   │     │Scavenge │                  │</span><br><span class="line">│   └─────────┘     └─────────┘     │ (STW)   │                  │</span><br><span class="line">│        │               │         └────┬────┘                  │</span><br><span class="line">│        │               │              │                       │</span><br><span class="line">│        │               │              ▼                       │</span><br><span class="line">│        │               │        ┌─────────┐                   │</span><br><span class="line">│        │               └───────▶│  CMS    │                   │</span><br><span class="line">│        │                       │(并发)   │                   │</span><br><span class="line">│        │                       └────┬────┘                   │</span><br><span class="line">│        │                            │                         │</span><br><span class="line">│        ▼                            ▼                         │</span><br><span class="line">│   ┌─────────┐               ┌─────────────┐                   │</span><br><span class="line">│   │Serial   │               │     G1      │                   │</span><br><span class="line">│   │Old      │               │  (Region)   │                   │</span><br><span class="line">│   └─────────┘               └──────┬──────┘                   │</span><br><span class="line">│                                     │                           │</span><br><span class="line">│                                     ▼                           │</span><br><span class="line">│                              ┌─────────────┐                   │</span><br><span class="line">│                              │    ZGC      │                   │</span><br><span class="line">│                              │  (着色指针) │                   │</span><br><span class="line">│                              │  (并发)     │                   │</span><br><span class="line">│                              └─────────────┘                   │</span><br><span class="line">└─────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-新生代收集器"><a href="#4-2-新生代收集器" class="headerlink" title="4.2 新生代收集器"></a>4.2 新生代收集器</h3><h4 id="Serial-收集器"><a href="#Serial-收集器" class="headerlink" title="Serial 收集器"></a>Serial 收集器</h4><ul>
+<li>单线程工作</li>
+<li>停止所有用户线程（Stop The World）</li>
+<li>简单高效，Client 模式默认</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 Serial 新生代收集器</span></span><br><span class="line">-XX:+UseSerialGC</span><br></pre></td></tr></table></figure>
+
+<h4 id="ParNew-收集器"><a href="#ParNew-收集器" class="headerlink" title="ParNew 收集器"></a>ParNew 收集器</h4><ul>
+<li>Serial 的多线程版本</li>
+<li>Server 模式首选的新生代收集器</li>
+<li>可与 CMS 配合使用</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 ParNew 收集器</span></span><br><span class="line">-XX:+UseParNewGC</span><br><span class="line"><span class="comment"># 设置线程数</span></span><br><span class="line">-XX:ParallelGCThreads=4</span><br></pre></td></tr></table></figure>
+
+<h4 id="Parallel-Scavenge-收集器"><a href="#Parallel-Scavenge-收集器" class="headerlink" title="Parallel Scavenge 收集器"></a>Parallel Scavenge 收集器</h4><ul>
+<li>关注吞吐量（Throughput）</li>
+<li>自适应调节策略</li>
+<li>适合后台运算任务</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 Parallel Scavenge</span></span><br><span class="line">-XX:+UseParallelGC</span><br><span class="line"><span class="comment"># 设置最大 GC 停顿时间（目标）</span></span><br><span class="line">-XX:MaxGCPauseMillis=100</span><br><span class="line"><span class="comment"># 设置吞吐量目标</span></span><br><span class="line">-XX:GCTimeRatio=19</span><br><span class="line"><span class="comment"># 开启自适应调节</span></span><br><span class="line">-XX:+UseAdaptiveSizePolicy</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-老年代收集器"><a href="#4-3-老年代收集器" class="headerlink" title="4.3 老年代收集器"></a>4.3 老年代收集器</h3><h4 id="Serial-Old-收集器"><a href="#Serial-Old-收集器" class="headerlink" title="Serial Old 收集器"></a>Serial Old 收集器</h4><ul>
+<li>Serial 的老年代版本</li>
+<li>使用标记-整理算法</li>
+<li>作为 CMS 的后备收集器</li>
+</ul>
+<h4 id="Parallel-Old-收集器"><a href="#Parallel-Old-收集器" class="headerlink" title="Parallel Old 收集器"></a>Parallel Old 收集器</h4><ul>
+<li>Parallel Scavenge 的老年代版本</li>
+<li>使用标记-整理算法</li>
+<li>JDK 1.6+ 可用</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 Parallel Old</span></span><br><span class="line">-XX:+UseParallelOldGC</span><br></pre></td></tr></table></figure>
+
+<h4 id="CMS-收集器（Concurrent-Mark-Sweep）"><a href="#CMS-收集器（Concurrent-Mark-Sweep）" class="headerlink" title="CMS 收集器（Concurrent Mark Sweep）"></a>CMS 收集器（Concurrent Mark Sweep）</h4><ul>
+<li>以最短停顿时间为目标</li>
+<li>并发收集，低停顿</li>
+<li>使用标记-清除算法</li>
+</ul>
+<p><strong>工作流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 初始标记（Initial Mark）  - STW，找到 GC Roots</span><br><span class="line">         ↓</span><br><span class="line">2. 并发标记（Concurrent Mark）- 用户线程并发运行，标记可达对象</span><br><span class="line">         ↓</span><br><span class="line">3. 重新标记（Remark）         - STW，修正并发标记期间变动</span><br><span class="line">         ↓</span><br><span class="line">4. 并发清除（Concurrent Sweep）- 清除死亡对象</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 CMS</span></span><br><span class="line">-XX:+UseConcMarkSweepGC</span><br><span class="line"><span class="comment"># 触发阈值（老年代使用率）</span></span><br><span class="line">-XX:CMSInitiatingOccupancyFraction=68</span><br><span class="line"><span class="comment"># 启用动态调节</span></span><br><span class="line">-XX:+UseCMSInitiatingOccupancyOnly</span><br></pre></td></tr></table></figure>
+
+<p><strong>缺点</strong>：</p>
+<ul>
+<li>对 CPU 资源敏感</li>
+<li>无法处理浮动垃圾</li>
+<li>产生内存碎片</li>
+</ul>
+<h3 id="4-4-G1-收集器（Garbage-First）"><a href="#4-4-G1-收集器（Garbage-First）" class="headerlink" title="4.4 G1 收集器（Garbage First）"></a>4.4 G1 收集器（Garbage First）</h3><p>JDK 9+ 默认收集器。将堆划分为多个大小相等的 Region（1MB~32MB），跟踪各 Region 的垃圾价值（回收获得的空间和回收所需时间），优先回收价值最大的 Region。</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>并行与并发</li>
+<li>分代收集</li>
+<li>空间整合（Region 间采用复制算法）</li>
+<li>可预测停顿</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 G1</span></span><br><span class="line">-XX:+UseG1GC</span><br><span class="line"><span class="comment"># 设置目标停顿时间</span></span><br><span class="line">-XX:MaxGCPauseMillis=200</span><br><span class="line"><span class="comment"># 设置 Region 大小</span></span><br><span class="line">-XX:G1HeapRegionSize=4m</span><br><span class="line"><span class="comment"># 触发 Humongous 对象阈值</span></span><br><span class="line">-XX:G1HeapRegionSize=4m</span><br></pre></td></tr></table></figure>
+
+<p><strong>工作流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 初始标记（Initial Mark）   - 标记 GC Roots，直接可达对象</span><br><span class="line">         ↓</span><br><span class="line">2. 并发标记（Concurrent Mark） - 全量扫描可达对象</span><br><span class="line">         ↓</span><br><span class="line">3. 最终标记（Final Mark）      - 记录并发期间的变化</span><br><span class="line">         ↓</span><br><span class="line">4. 筛选回收（Live Data Counting &amp; Evacuation）</span><br><span class="line">         - 选定多个 Region 组成回收集</span><br><span class="line">         - 复制存活对象到空 Region</span><br><span class="line">         - 清理旧 Region</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-5-ZGC-和-Shenandoah"><a href="#4-5-ZGC-和-Shenandoah" class="headerlink" title="4.5 ZGC 和 Shenandoah"></a>4.5 ZGC 和 Shenandoah</h3><p>面向低延迟的收集器：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>ZGC</th>
+<th>Shenandoah</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>停顿时间</td>
+<td>&lt;1ms</td>
+<td>&lt;1ms</td>
+</tr>
+<tr>
+<td>吞吐量影响</td>
+<td>&lt;15%</td>
+<td>&lt;10%</td>
+</tr>
+<tr>
+<td>堆大小支持</td>
+<td>8MB~16TB</td>
+<td>依赖物理内存</td>
+</tr>
+<tr>
+<td>着色指针</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>背靠背收集</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用 ZGC（JDK 11+）</span></span><br><span class="line">-XX:+UseZGC</span><br><span class="line"><span class="comment"># 启用 Shenandoah（JDK 12+）</span></span><br><span class="line">-XX:+UseShenandoahGC</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、JVM-参数配置实战"><a href="#五、JVM-参数配置实战" class="headerlink" title="五、JVM 参数配置实战"></a>五、JVM 参数配置实战</h2><h3 id="5-1-常用参数汇总"><a href="#5-1-常用参数汇总" class="headerlink" title="5.1 常用参数汇总"></a>5.1 常用参数汇总</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 堆内存配置</span></span><br><span class="line">-Xms256m                 <span class="comment"># 初始堆大小</span></span><br><span class="line">-Xmx512m                 <span class="comment"># 最大堆大小</span></span><br><span class="line">-Xmn128m                 <span class="comment"># 新生代大小</span></span><br><span class="line">-XX:MetaspaceSize=128m   <span class="comment"># 元空间初始大小</span></span><br><span class="line">-XX:MaxMetaspaceSize=256m <span class="comment"># 元空间最大大小</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 新生代配置</span></span><br><span class="line">-XX:SurvivorRatio=8      <span class="comment"># Eden:Survivor = 8:1</span></span><br><span class="line">-XX:NewRatio=2           <span class="comment"># 老年代:新生代 = 2:1</span></span><br><span class="line">-XX:MaxTenuringThreshold=15 <span class="comment"># 对象进入老年代的年龄阈值</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># GC 配置</span></span><br><span class="line">-XX:+UseG1GC             <span class="comment"># 使用 G1 收集器</span></span><br><span class="line">-XX:MaxGCPauseMillis=200 <span class="comment"># 目标停顿时间</span></span><br><span class="line">-XX:+PrintGCDetails      <span class="comment"># 打印 GC 详情</span></span><br><span class="line">-XX:+PrintGCDateStamps   <span class="comment"># 打印 GC 时间戳</span></span><br><span class="line">-Xloggc:/path/gc.log     <span class="comment"># GC 日志文件</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># OOM 时生成堆转储</span></span><br><span class="line">-XX:+HeapDumpOnOutOfMemoryError</span><br><span class="line">-XX:HeapDumpPath=/path/heapdump.hprof</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-常见场景配置示例"><a href="#5-2-常见场景配置示例" class="headerlink" title="5.2 常见场景配置示例"></a>5.2 常见场景配置示例</h3><h4 id="高并发-Web-应用"><a href="#高并发-Web-应用" class="headerlink" title="高并发 Web 应用"></a>高并发 Web 应用</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -Xms2g -Xmx2g \</span><br><span class="line">     -Xmn1g \</span><br><span class="line">     -XX:MetaspaceSize=256m \</span><br><span class="line">     -XX:MaxMetaspaceSize=512m \</span><br><span class="line">     -XX:+UseG1GC \</span><br><span class="line">     -XX:MaxGCPauseMillis=200 \</span><br><span class="line">     -XX:+HeapDumpOnOutOfMemoryError \</span><br><span class="line">     -XX:HeapDumpPath=/var/log/heapdump.hprof \</span><br><span class="line">     -Xlog:gc*:file=/var/log/gc.log:time,<span class="built_in">uptime</span>:filecount=5,filesize=10M \</span><br><span class="line">     -jar application.jar</span><br></pre></td></tr></table></figure>
+
+<h4 id="大数据处理应用"><a href="#大数据处理应用" class="headerlink" title="大数据处理应用"></a>大数据处理应用</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -Xms8g -Xmx8g \</span><br><span class="line">     -Xmn4g \</span><br><span class="line">     -XX:+UseParallelGC \</span><br><span class="line">     -XX:+ParallelRefProcEnabled \</span><br><span class="line">     -XX:MaxGCPauseMillis=500 \</span><br><span class="line">     -XX:+UseLargePages \</span><br><span class="line">     -jar bigdata-app.jar</span><br></pre></td></tr></table></figure>
+
+<h2 id="六、GC-日志分析"><a href="#六、GC-日志分析" class="headerlink" title="六、GC 日志分析"></a>六、GC 日志分析</h2><h3 id="6-1-查看-GC-日志"><a href="#6-1-查看-GC-日志" class="headerlink" title="6.1 查看 GC 日志"></a>6.1 查看 GC 日志</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 启用详细 GC 日志</span></span><br><span class="line">-XX:+PrintGCDetails \</span><br><span class="line">-XX:+PrintGCDateStamps \</span><br><span class="line">-Xloggc:/var/log/gc.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># JDK 9+ 使用新的日志系统</span></span><br><span class="line">-Xlog:gc*:file=gc.log:time,<span class="built_in">uptime</span>:filecount=5,filesize=10M</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-日志解读"><a href="#6-2-日志解读" class="headerlink" title="6.2 日志解读"></a>6.2 日志解读</h3><p><strong>Minor GC 日志</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">2026-04-15T08:00:00.123+0800: 1.234: [GC (Allocation Failure) </span><br><span class="line">  PSYoungGen: 139776K-&gt;4096K(153600K)] </span><br><span class="line">  139776K-&gt;48512K(506880K), 0.0456789 secs] </span><br><span class="line">  [Times: user=0.12 sys=0.01, real=0.05 secs]</span><br></pre></td></tr></table></figure>
+
+<p><strong>Full GC 日志</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">2026-04-15T08:05:00.456+0800: 301.567: [Full GC (System.gc()) </span><br><span class="line">  [PSYoungGen: 0K-&gt;0K(153600K)] </span><br><span class="line">  [ParOldGen: 48512K-&gt;48256K(353280K)] </span><br><span class="line">  48512K-&gt;48256K(506880K), </span><br><span class="line">  [Metaspace: 52488K-&gt;52488K(53248K)], 0.1234567 secs]</span><br><span class="line">  [Times: user=0.45 sys=0.02, real=0.12 secs]</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-GC-日志分析工具"><a href="#6-3-GC-日志分析工具" class="headerlink" title="6.3 GC 日志分析工具"></a>6.3 GC 日志分析工具</h3><ul>
+<li><strong>GCViewer</strong>：开源可视化工具</li>
+<li><strong>GCEasy</strong>：在线分析平台</li>
+<li><strong>GCViewer VisualVM 插件</strong>：IDE 内直接分析</li>
+</ul>
+<h2 id="七、性能调优建议"><a href="#七、性能调优建议" class="headerlink" title="七、性能调优建议"></a>七、性能调优建议</h2><h3 id="7-1-常见问题排查"><a href="#7-1-常见问题排查" class="headerlink" title="7.1 常见问题排查"></a>7.1 常见问题排查</h3><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>可能原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Full GC 频繁</td>
+<td>堆内存不足&#x2F;内存泄漏</td>
+<td>增大堆内存&#x2F;检查代码</td>
+</tr>
+<tr>
+<td>Minor GC 时间长</td>
+<td>新生代过大</td>
+<td>适当减小新生代</td>
+</tr>
+<tr>
+<td>对象晋升过早</td>
+<td>Survivor 区过小</td>
+<td>增大 Survivor</td>
+</tr>
+<tr>
+<td>OOM</td>
+<td>内存泄漏&#x2F;配置不当</td>
+<td>生成堆转储分析</td>
+</tr>
+</tbody></table>
+<h3 id="7-2-调优步骤"><a href="#7-2-调优步骤" class="headerlink" title="7.2 调优步骤"></a>7.2 调优步骤</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 监控阶段</span><br><span class="line">   ├── 观察 GC 日志</span><br><span class="line">   ├── 使用 jstat/jinfo 监控</span><br><span class="line">   └── 使用 VisualVM/Arthas 分析</span><br><span class="line">   </span><br><span class="line">2. 分析阶段</span><br><span class="line">   ├── 确定问题类型（频率/耗时）</span><br><span class="line">   ├── 分析对象晋升情况</span><br><span class="line">   └── 定位内存泄漏点</span><br><span class="line">   </span><br><span class="line">3. 调优阶段</span><br><span class="line">   ├── 调整堆大小</span><br><span class="line">   ├── 选择合适的收集器</span><br><span class="line">   └── 调整分代比例</span><br><span class="line">   </span><br><span class="line">4. 验证阶段</span><br><span class="line">   ├── 重新监控</span><br><span class="line">   └── 对比调优前后</span><br></pre></td></tr></table></figure>
+
+<h2 id="八、总结"><a href="#八、总结" class="headerlink" title="八、总结"></a>八、总结</h2><p>本文深入探讨了 JVM 内存模型和垃圾回收算法的核心知识：</p>
+<p><strong>核心要点</strong>：</p>
+<ol>
+<li><p><strong>内存区域划分</strong>：线程私有（程序计数器、虚拟机栈、本地方法栈）和线程共享（堆、方法区）</p>
+</li>
+<li><p><strong>对象分配</strong>：优先在 Eden 区分配，使用 TLAB 或 CAS 解决并发问题</p>
+</li>
+<li><p><strong>死亡对象判定</strong>：可达性分析算法，以 GC Roots 为起点</p>
+</li>
+<li><p><strong>垃圾回收算法</strong>：标记-清除、复制、标记-整理，以及综合运用的分代收集</p>
+</li>
+<li><p><strong>垃圾收集器</strong>：从 Serial 到 G1、ZGC，各有适用场景</p>
+</li>
+<li><p><strong>性能调优</strong>：监控 → 分析 → 调优 → 验证的闭环流程</p>
+</li>
+</ol>
+<p>理解这些底层原理，不仅能帮助我们写出更高效的代码，还能在系统出现性能问题时快速定位和解决。</p>
+<hr>
+<p><strong>参考资源</strong>：</p>
+<ul>
+<li>《深入理解Java虚拟机（第3版）》- 周志华</li>
+<li><a href="https://docs.oracle.com/javase/specs/jvms/se17/html/index.html">JVM 官方文档</a></li>
+<li><a href="https://www.oracle.com/java/technologies/javase/hotspot-garbage-collection.html">G1 官方介绍</a></li>
+</ul>
+<hr>
+<p><em>封面图片来源：<a href="https://unsplash.com/photos/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>JVM</tag>
+        <tag>GC</tag>
+        <tag>内存模型</tag>
+        <tag>垃圾回收</tag>
+      </tags>
+  </entry>
 </search>

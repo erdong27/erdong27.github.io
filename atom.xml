@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-14T00:37:12.409Z</updated>
+  <updated>2026-04-15T00:38:38.966Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,40 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>JVM内存模型与垃圾回收算法</title>
+    <link href="https://erdong27.github.io/2026/04/15/2026-04-15-JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95/"/>
+    <id>https://erdong27.github.io/2026/04/15/2026-04-15-JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95/</id>
+    <published>2026-04-15T00:35:00.000Z</published>
+    <updated>2026-04-15T00:38:38.966Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    <category term="JVM" scheme="https://erdong27.github.io/categories/Java/JVM/"/>
+    
+    
+    <category term="JVM" scheme="https://erdong27.github.io/tags/JVM/"/>
+    
+    <category term="GC" scheme="https://erdong27.github.io/tags/GC/"/>
+    
+    <category term="内存模型" scheme="https://erdong27.github.io/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
+    
+    <category term="垃圾回收" scheme="https://erdong27.github.io/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/"/>
+    
+  </entry>
   
   <entry>
     <title>线程池拒绝策略自定义</title>
@@ -580,34 +614,6 @@
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
     <category term="generic" scheme="https://erdong27.github.io/tags/generic/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>vite配置环境变量</title>
-    <link href="https://erdong27.github.io/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/"/>
-    <id>https://erdong27.github.io/2024/07/19/vite%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/</id>
-    <published>2024-07-19T15:13:28.000Z</published>
-    <updated>2024-07-19T15:13:28.000Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;创建环境变量：在项目的根目录创建&lt;code&gt;.env.development&lt;/code&gt; 和&lt;code&gt;.env.prodution&lt;/code&gt;两个文件</summary>
-        
-      
-    
-    
-    
-    <category term="VUE" scheme="https://erdong27.github.io/categories/VUE/"/>
-    
-    
-    <category term="VITE" scheme="https://erdong27.github.io/tags/VITE/"/>
-    
-    <category term="VUE" scheme="https://erdong27.github.io/tags/VUE/"/>
     
   </entry>
   
