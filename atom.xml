@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-16T00:36:38.345Z</updated>
+  <updated>2026-04-17T03:18:07.263Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,42 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>G1 收集器深度剖析</title>
+    <link href="https://erdong27.github.io/2026/04/17/2026-04-17-G1-%E6%94%B6%E9%9B%86%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/"/>
+    <id>https://erdong27.github.io/2026/04/17/2026-04-17-G1-%E6%94%B6%E9%9B%86%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/</id>
+    <published>2026-04-17T10:00:00.000Z</published>
+    <updated>2026-04-17T03:18:07.263Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="JVM" scheme="https://erdong27.github.io/categories/JVM/"/>
+    
+    <category term="性能优化" scheme="https://erdong27.github.io/categories/JVM/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    
+    <category term="JVM" scheme="https://erdong27.github.io/tags/JVM/"/>
+    
+    <category term="GC" scheme="https://erdong27.github.io/tags/GC/"/>
+    
+    <category term="G1" scheme="https://erdong27.github.io/tags/G1/"/>
+    
+    <category term="垃圾收集器" scheme="https://erdong27.github.io/tags/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/"/>
+    
+    <category term="性能调优" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/"/>
+    
+  </entry>
   
   <entry>
     <title>并发编程最佳实践总结</title>
@@ -604,25 +640,6 @@
     
     
     <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lambda表达式函数式编程</title>
-    <link href="https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/"/>
-    <id>https://erdong27.github.io/2024/07/25/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/</id>
-    <published>2024-07-25T15:05:00.000Z</published>
-    <updated>2024-07-27T07:37:40.166Z</updated>
-    
-    
-    <summary type="html">Java 中的闭包与柯里化，浅析Lambda 表达式的执行原理。</summary>
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    
-    <category term="Lambda" scheme="https://erdong27.github.io/tags/Lambda/"/>
     
   </entry>
   
