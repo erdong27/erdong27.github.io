@@ -5487,4 +5487,163 @@
         <tag>故障排查</tag>
       </tags>
   </entry>
+  <entry>
+    <title>JVM 参数调优实战案例</title>
+    <url>/2026/04/20/2026-04-20-JVM%E5%8F%82%E6%95%B0%E8%B0%83%E4%BC%98%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B/</url>
+    <content><![CDATA[<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>Java</strong>: 8 / 11 / 17</li>
+<li><strong>JVM</strong>: HotSpot</li>
+<li><strong>垃圾收集器</strong>: Parallel GC / G1 / ZGC</li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>JVM 参数调优是 Java 后端开发中非常重要的技能，合适的 JVM 参数配置可以让应用程序获得更好的性能表现。本文将通过实际案例，详细讲解 JVM 参数调优的方法和技巧。</p>
+<h2 id="1-常用-JVM-参数分类"><a href="#1-常用-JVM-参数分类" class="headerlink" title="1. 常用 JVM 参数分类"></a>1. 常用 JVM 参数分类</h2><p>JVM 参数可以分为以下几类：</p>
+<h3 id="1-1-堆内存相关参数"><a href="#1-1-堆内存相关参数" class="headerlink" title="1.1 堆内存相关参数"></a>1.1 堆内存相关参数</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-Xms</td>
+<td>初始堆大小</td>
+<td>-Xms2g</td>
+</tr>
+<tr>
+<td>-Xmx</td>
+<td>最大堆大小</td>
+<td>-Xmx4g</td>
+</tr>
+<tr>
+<td>-Xmn</td>
+<td>新生代大小</td>
+<td>-Xmn1g</td>
+</tr>
+<tr>
+<td>-XX:MetaspaceSize</td>
+<td>元空间初始大小</td>
+<td>-XX:MetaspaceSize=256m</td>
+</tr>
+<tr>
+<td>-XX:MaxMetaspaceSize</td>
+<td>元空间最大大小</td>
+<td>-XX:MaxMetaspaceSize=512m</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="1-2-垃圾收集器相关参数"><a href="#1-2-垃圾收集器相关参数" class="headerlink" title="1.2 垃圾收集器相关参数"></a>1.2 垃圾收集器相关参数</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Parallel GC</span></span><br><span class="line">-XX:+UseParallelGC -XX:+UseParallelOldGC</span><br><span class="line"></span><br><span class="line"><span class="comment"># G1 GC</span></span><br><span class="line">-XX:+UseG1GC -XX:MaxGCPauseMillis=200</span><br><span class="line"></span><br><span class="line"><span class="comment"># ZGC</span></span><br><span class="line">-XX:+UseZGC -XX:ConcGCThreads=2</span><br></pre></td></tr></table></figure>
+<h3 id="1-3-GC-日志相关参数"><a href="#1-3-GC-日志相关参数" class="headerlink" title="1.3 GC 日志相关参数"></a>1.3 GC 日志相关参数</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># GC 日志输出到文件</span></span><br><span class="line">-Xlog:gc*:file=gc.log:time,<span class="built_in">uptime</span>,level,tags:filecount=10,filesize=10m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打印 GC 详细信息</span></span><br><span class="line">-XX:+PrintGCDetails -XX:+PrintGCDateStamps</span><br></pre></td></tr></table></figure>
+<h2 id="2-实战案例：订单服务性能优化"><a href="#2-实战案例：订单服务性能优化" class="headerlink" title="2. 实战案例：订单服务性能优化"></a>2. 实战案例：订单服务性能优化</h2><h3 id="2-1-问题背景"><a href="#2-1-问题背景" class="headerlink" title="2.1 问题背景"></a>2.1 问题背景</h3><p>某电商平台的订单服务在高峰期出现以下问题：</p>
+<ul>
+<li>频繁 Full GC，导致服务响应变慢</li>
+<li>内存使用不稳定，有时 OOM</li>
+<li>GC 停顿时间过长，影响用户体验</li>
+</ul>
+<h3 id="2-2-初始配置"><a href="#2-2-初始配置" class="headerlink" title="2.2 初始配置"></a>2.2 初始配置</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -Xms2g -Xmx2g -XX:+UseParallelGC order-service.jar</span><br></pre></td></tr></table></figure>
+<h3 id="2-3-问题分析"><a href="#2-3-问题分析" class="headerlink" title="2.3 问题分析"></a>2.3 问题分析</h3><p>通过 GC 日志分析，发现以下问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[Full GC (Allocation Failure) </span><br><span class="line">  PSYoungGen: 524288K-&gt;524287K(611840K)] </span><br><span class="line">  [ParOldGen: 1747608K-&gt;1747608K(1747608K)] </span><br><span class="line">  PSMetaspace: 95483K-&gt;95483K(1130496K)]</span><br><span class="line">  2272268K-&gt;2272268K(2359448K), </span><br><span class="line">  [Metaspace: 95483K-&gt;95483K(1130496K)], </span><br><span class="line">  5.2345670 secs]</span><br></pre></td></tr></table></figure>
+<p><strong>问题诊断：</strong></p>
+<ol>
+<li>堆内存只有 2G，且 -Xms 和 -Xmx 相同，无法动态扩展</li>
+<li>使用的是 Parallel GC，停顿时间较长</li>
+<li>老年代频繁发生 Full GC</li>
+</ol>
+<h3 id="2-4-优化方案"><a href="#2-4-优化方案" class="headerlink" title="2.4 优化方案"></a>2.4 优化方案</h3><h4 id="第一步：调整堆内存"><a href="#第一步：调整堆内存" class="headerlink" title="第一步：调整堆内存"></a>第一步：调整堆内存</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 增大堆内存，允许动态扩展</span></span><br><span class="line">-Xms4g -Xmx8g</span><br><span class="line"><span class="comment"># 新生代 2G</span></span><br><span class="line">-Xmn2g</span><br></pre></td></tr></table></figure>
+<h4 id="第二步：更换垃圾收集器"><a href="#第二步：更换垃圾收集器" class="headerlink" title="第二步：更换垃圾收集器"></a>第二步：更换垃圾收集器</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 使用 G1 收集器，控制停顿时间</span></span><br><span class="line">-XX:+UseG1GC</span><br><span class="line">-XX:MaxGCPauseMillis=200</span><br><span class="line">-XX:G1HeapRegionSize=16m</span><br><span class="line">-XX:InitiatingHeapOccupancyPercent=45</span><br></pre></td></tr></table></figure>
+<h4 id="第三步：调整元空间"><a href="#第三步：调整元空间" class="headerlink" title="第三步：调整元空间"></a>第三步：调整元空间</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 元空间使用本地内存</span></span><br><span class="line">-XX:MetaspaceSize=256m</span><br><span class="line">-XX:MaxMetaspaceSize=1g</span><br></pre></td></tr></table></figure>
+<h4 id="第四步：添加-GC-日志"><a href="#第四步：添加-GC-日志" class="headerlink" title="第四步：添加 GC 日志"></a>第四步：添加 GC 日志</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 完整的 GC 日志配置</span></span><br><span class="line">-Xlog:gc*:file=./logs/gc.log:time,<span class="built_in">uptime</span>,level,tags:filecount=10,filesize=50m</span><br></pre></td></tr></table></figure>
+<h3 id="2-5-优化后的完整配置"><a href="#2-5-优化后的完整配置" class="headerlink" title="2.5 优化后的完整配置"></a>2.5 优化后的完整配置</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java \</span><br><span class="line">  -Xms4g \</span><br><span class="line">  -Xmx8g \</span><br><span class="line">  -Xmn2g \</span><br><span class="line">  -XX:MetaspaceSize=256m \</span><br><span class="line">  -XX:MaxMetaspaceSize=1g \</span><br><span class="line">  -XX:+UseG1GC \</span><br><span class="line">  -XX:MaxGCPauseMillis=200 \</span><br><span class="line">  -XX:G1HeapRegionSize=16m \</span><br><span class="line">  -XX:InitiatingHeapOccupancyPercent=45 \</span><br><span class="line">  -Xlog:gc*:file=./logs/gc.log:time,<span class="built_in">uptime</span>,level,tags:filecount=10,filesize=50m \</span><br><span class="line">  -jar order-service.jar</span><br></pre></td></tr></table></figure>
+<h3 id="2-6-优化效果"><a href="#2-6-优化效果" class="headerlink" title="2.6 优化效果"></a>2.6 优化效果</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>优化前</th>
+<th>优化后</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平均响应时间</td>
+<td>320ms</td>
+<td>85ms</td>
+<td>73.4%</td>
+</tr>
+<tr>
+<td>P99 响应时间</td>
+<td>1200ms</td>
+<td>210ms</td>
+<td>82.5%</td>
+</tr>
+<tr>
+<td>Full GC 频率</td>
+<td>每小时 3-5 次</td>
+<td>每 2-3 天 1 次</td>
+<td>95%+</td>
+</tr>
+<tr>
+<td>GC 停顿时间</td>
+<td>2-5 秒</td>
+<td>200ms 以内</td>
+<td>96%+</td>
+</tr>
+<tr>
+<td>内存使用</td>
+<td>不稳定</td>
+<td>稳定</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="3-不同场景的推荐配置"><a href="#3-不同场景的推荐配置" class="headerlink" title="3. 不同场景的推荐配置"></a>3. 不同场景的推荐配置</h2><h3 id="3-1-高吞吐量服务（离线计算）"><a href="#3-1-高吞吐量服务（离线计算）" class="headerlink" title="3.1 高吞吐量服务（离线计算）"></a>3.1 高吞吐量服务（离线计算）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java \</span><br><span class="line">  -Xms8g \</span><br><span class="line">  -Xmx8g \</span><br><span class="line">  -Xmn3g \</span><br><span class="line">  -XX:+UseParallelGC \</span><br><span class="line">  -XX:+UseParallelOldGC \</span><br><span class="line">  -XX:ParallelGCThreads=8 \</span><br><span class="line">  -XX:+UseAdaptiveSizePolicy \</span><br><span class="line">  -jar app.jar</span><br></pre></td></tr></table></figure>
+<h3 id="3-2-低延迟服务（在线API）"><a href="#3-2-低延迟服务（在线API）" class="headerlink" title="3.2 低延迟服务（在线API）"></a>3.2 低延迟服务（在线API）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java \</span><br><span class="line">  -Xms4g \</span><br><span class="line">  -Xmx8g \</span><br><span class="line">  -Xmn2g \</span><br><span class="line">  -XX:+UseG1GC \</span><br><span class="line">  -XX:MaxGCPauseMillis=100 \</span><br><span class="line">  -XX:G1HeapRegionSize=8m \</span><br><span class="line">  -XX:InitiatingHeapOccupancyPercent=35 \</span><br><span class="line">  -XX:+AlwaysPreTouch \</span><br><span class="line">  -jar app.jar</span><br></pre></td></tr></table></figure>
+<h3 id="3-3-大内存服务（-gt-32GB）"><a href="#3-3-大内存服务（-gt-32GB）" class="headerlink" title="3.3 大内存服务（&gt;32GB）"></a>3.3 大内存服务（&gt;32GB）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java \</span><br><span class="line">  -Xms64g \</span><br><span class="line">  -Xmx64g \</span><br><span class="line">  -XX:+UseZGC \</span><br><span class="line">  -XX:ConcGCThreads=4 \</span><br><span class="line">  -XX:+AlwaysPreTouch \</span><br><span class="line">  -jar app.jar</span><br></pre></td></tr></table></figure>
+<h2 id="4-JVM-参数调优最佳实践"><a href="#4-JVM-参数调优最佳实践" class="headerlink" title="4. JVM 参数调优最佳实践"></a>4. JVM 参数调优最佳实践</h2><h3 id="4-1-原则"><a href="#4-1-原则" class="headerlink" title="4.1 原则"></a>4.1 原则</h3><ol>
+<li><strong>循序渐进</strong>：每次只调整一个参数，观察效果</li>
+<li><strong>监控为王</strong>：基于数据调整，不要凭感觉</li>
+<li><strong>留有余量</strong>：生产环境不要把内存占满</li>
+<li><strong>容器适配</strong>：在 K8s 环境中注意资源限制</li>
+</ol>
+<h3 id="4-2-调优步骤"><a href="#4-2-调优步骤" class="headerlink" title="4.2 调优步骤"></a>4.2 调优步骤</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 基础监控</span><br><span class="line">   ↓</span><br><span class="line">2. 分析 GC 日志</span><br><span class="line">   ↓</span><br><span class="line">3. 定位问题</span><br><span class="line">   ↓</span><br><span class="line">4. 制定方案</span><br><span class="line">   ↓</span><br><span class="line">5. 测试验证</span><br><span class="line">   ↓</span><br><span class="line">6. 上线观察</span><br></pre></td></tr></table></figure>
+<h3 id="4-3-推荐工具"><a href="#4-3-推荐工具" class="headerlink" title="4.3 推荐工具"></a>4.3 推荐工具</h3><ul>
+<li><strong>GCViewer</strong>：GC 日志分析</li>
+<li><strong>GCEasy</strong>：在线 GC 日志分析</li>
+<li><strong>VisualVM</strong>：实时监控</li>
+<li><strong>Arthas</strong>：线上问题诊断</li>
+</ul>
+<h2 id="5-常见问题解答"><a href="#5-常见问题解答" class="headerlink" title="5. 常见问题解答"></a>5. 常见问题解答</h2><h3 id="Q1：如何选择垃圾收集器？"><a href="#Q1：如何选择垃圾收集器？" class="headerlink" title="Q1：如何选择垃圾收集器？"></a>Q1：如何选择垃圾收集器？</h3><ul>
+<li>吞吐量优先：Parallel GC</li>
+<li>延迟优先：G1 GC 或 ZGC</li>
+<li>大内存（&gt;32G）：ZGC</li>
+</ul>
+<h3 id="Q2：-Xms-和-Xmx-设置相同好吗？"><a href="#Q2：-Xms-和-Xmx-设置相同好吗？" class="headerlink" title="Q2：-Xms 和 -Xmx 设置相同好吗？"></a>Q2：-Xms 和 -Xmx 设置相同好吗？</h3><p>对于生产环境，建议设置为相同，避免堆动态调整带来的开销。但初始值需要根据实际需求设置。</p>
+<h3 id="Q3：年轻代越大越好吗？"><a href="#Q3：年轻代越大越好吗？" class="headerlink" title="Q3：年轻代越大越好吗？"></a>Q3：年轻代越大越好吗？</h3><p>不一定，年轻代太大会导致老年代变小，增加 Full GC 频率。需要根据对象生命周期特点来调整。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>JVM 参数调优是一个持续优化的过程，需要结合实际业务场景和监控数据来进行。记住以下三点：</p>
+<ol>
+<li><strong>没有银弹</strong>：没有适用于所有场景的最佳配置</li>
+<li><strong>数据驱动</strong>：基于监控数据做决策</li>
+<li><strong>持续优化</strong>：定期review和调整配置</li>
+</ol>
+<hr>
+<p><em>封面图来源：Unsplash</em></p>
+]]></content>
+      <categories>
+        <category>后端开发</category>
+      </categories>
+      <tags>
+        <tag>Java</tag>
+        <tag>性能优化</tag>
+        <tag>JVM</tag>
+      </tags>
+  </entry>
 </search>
