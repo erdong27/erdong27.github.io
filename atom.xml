@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-20T01:38:08.086Z</updated>
+  <updated>2026-04-21T00:38:08.264Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,38 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>类加载机制与双亲委派模型</title>
+    <link href="https://erdong27.github.io/2026/04/21/2026-04-21-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B/"/>
+    <id>https://erdong27.github.io/2026/04/21/2026-04-21-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B/</id>
+    <published>2026-04-21T10:00:00.000Z</published>
+    <updated>2026-04-21T00:38:08.264Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="JVM性能优化" scheme="https://erdong27.github.io/categories/JVM%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
+    
+    <category term="JVM" scheme="https://erdong27.github.io/tags/JVM/"/>
+    
+    <category term="类加载" scheme="https://erdong27.github.io/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD/"/>
+    
+    <category term="双亲委派" scheme="https://erdong27.github.io/tags/%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE/"/>
+    
+  </entry>
   
   <entry>
     <title>常见 OOM 场景分析与解决</title>
@@ -631,39 +663,6 @@
     <category term="Autowired" scheme="https://erdong27.github.io/tags/Autowired/"/>
     
     <category term="BestPractice" scheme="https://erdong27.github.io/tags/BestPractice/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Spring @Async 异步编程完全指南</title>
-    <link href="https://erdong27.github.io/2026/03/25/Spring-@Async%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/"/>
-    <id>https://erdong27.github.io/2026/03/25/Spring-@Async%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</id>
-    <published>2026-03-25T00:30:00.000Z</published>
-    <updated>2026-03-25T01:03:10.466Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;Spring-Async-异步编程完全指南&quot;&gt;&lt;a href=&quot;#Spring-Async-异步编程完全指南&quot; class=&quot;headerlink&quot; title=&quot;Spring @Async 异步编程完全指南&quot;&gt;&lt;/a&gt;Spring @Async</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    <category term="Spring" scheme="https://erdong27.github.io/categories/Java/Spring/"/>
-    
-    
-    <category term="Spring" scheme="https://erdong27.github.io/tags/Spring/"/>
-    
-    <category term="Async" scheme="https://erdong27.github.io/tags/Async/"/>
-    
-    <category term="Multithreading" scheme="https://erdong27.github.io/tags/Multithreading/"/>
-    
-    <category term="ThreadPool" scheme="https://erdong27.github.io/tags/ThreadPool/"/>
     
   </entry>
   
