@@ -5830,4 +5830,301 @@
         <tag>双亲委派</tag>
       </tags>
   </entry>
+  <entry>
+    <title>字节码指令入门</title>
+    <url>/2026/04/22/2026-04-22-%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h2 id="版本说明"><a href="#版本说明" class="headerlink" title="版本说明"></a>版本说明</h2><blockquote>
+<p>⚠️ <strong>本文基于以下版本编写：</strong></p>
+<ul>
+<li><strong>JDK</strong>: 8 &#x2F; 11 &#x2F; 17</li>
+<li><strong>JVM</strong>: HotSpot</li>
+<li><strong>工具</strong>: javap (JDK 内置)、ASM、Javassist</li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>作为 Java 开发者，我们每天都在写 <code>.java</code> 文件，但 JVM 执行的并非这些源代码，而是编译后的 <code>.class</code> 文件中的<strong>字节码指令</strong>。理解字节码，不仅能帮助我们读懂底层原理，还能在排查问题（如 OOM、性能瓶颈）时提供有力支持。</p>
+<p>本文将带你入门字节码指令，从基础概念到实战操作，循序渐进。</p>
+<hr>
+<h2 id="一、什么是字节码？"><a href="#一、什么是字节码？" class="headerlink" title="一、什么是字节码？"></a>一、什么是字节码？</h2><h3 id="1-1-定义"><a href="#1-1-定义" class="headerlink" title="1.1 定义"></a>1.1 定义</h3><p>字节码（Bytecode）是一种中间代码形式，由 Java 编译器（<code>javac</code>）生成，存储在 <code>.class</code> 文件中。它是一系列单字节（8位）的操作码（Opcode），每条指令对应 JVM 的一条具体操作。</p>
+<h3 id="1-2-为什么学习字节码？"><a href="#1-2-为什么学习字节码？" class="headerlink" title="1.2 为什么学习字节码？"></a>1.2 为什么学习字节码？</h3><ul>
+<li><strong>理解语言本质</strong>：理解 <code>for</code> 循环、<code>try-catch</code>、Lambda 表达式在底层的实现</li>
+<li><strong>性能优化</strong>：识别无效对象创建、冗余操作</li>
+<li><strong>问题排查</strong>：通过字节码分析死锁、内存泄漏等疑难杂症</li>
+<li><strong>工具开发</strong>：字节码插桩、APM 监控、热修复框架的基石</li>
+</ul>
+<hr>
+<h2 id="二、查看字节码的方法"><a href="#二、查看字节码的方法" class="headerlink" title="二、查看字节码的方法"></a>二、查看字节码的方法</h2><h3 id="2-1-使用-javap（推荐）"><a href="#2-1-使用-javap（推荐）" class="headerlink" title="2.1 使用 javap（推荐）"></a>2.1 使用 javap（推荐）</h3><p><code>javap</code> 是 JDK 自带的反编译工具，位于 <code>%JAVA_HOME%/bin/javap.exe</code>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 反编译类文件</span></span><br><span class="line">javap -c -p com.example.MyClass</span><br><span class="line"></span><br><span class="line"><span class="comment"># 参数说明：</span></span><br><span class="line"><span class="comment"># -c          输出字节码指令</span></span><br><span class="line"><span class="comment"># -p          显示私有成员</span></span><br><span class="line"><span class="comment"># -v          输出详细信息（包含常量池）</span></span><br><span class="line"><span class="comment"># -verbose    等同于 -v</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-Hello-World-示例"><a href="#2-2-Hello-World-示例" class="headerlink" title="2.2 Hello World 示例"></a>2.2 Hello World 示例</h3><p>首先创建一个简单的类：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// HelloBytecode.java</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloBytecode</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line">        <span class="type">int</span> <span class="variable">b</span> <span class="operator">=</span> <span class="number">20</span>;</span><br><span class="line">        <span class="type">int</span> <span class="variable">c</span> <span class="operator">=</span> a + b;</span><br><span class="line">        System.out.println(c);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译并查看字节码：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">javac HelloBytecode.java</span><br><span class="line">javap -c HelloBytecode.class</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public static void main(java.lang.String[]);</span><br><span class="line">  descriptor: ([Ljava/lang/String;)V</span><br><span class="line">  flags: ACC_PUBLIC, ACC_STATIC</span><br><span class="line">  Code:</span><br><span class="line">    stack=2, locals=4, args_size=1</span><br><span class="line">     0: bipush        10      // 将 byte 类型常量 10 压栈</span><br><span class="line">     2: istore_1              // 将栈顶 int 值存储到局部变量表索引 1</span><br><span class="line">     3: bipush        20      // 将 byte 类型常量 20 压栈</span><br><span class="line">     5: istore_2              // 存储到索引 2</span><br><span class="line">     6: iload_1               // 加载索引 1 的值</span><br><span class="line">     7: iload_2               // 加载索引 2 的值</span><br><span class="line">     8: iadd                  // 相加</span><br><span class="line">     9: istore_3              // 存储到索引 3</span><br><span class="line">    10: getstatic     #2      // 获取 System.out 静态字段</span><br><span class="line">    13: iload_3               // 加载 c 的值</span><br><span class="line">    14: invokevirtual #3      // 调用 println 方法</span><br><span class="line">    17: return</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、字节码指令分类"><a href="#三、字节码指令分类" class="headerlink" title="三、字节码指令分类"></a>三、字节码指令分类</h2><h3 id="3-1-加载与存储指令"><a href="#3-1-加载与存储指令" class="headerlink" title="3.1 加载与存储指令"></a>3.1 加载与存储指令</h3><p>用于在<strong>局部变量表</strong>与<strong>操作数栈</strong>之间传递数据。</p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>iload</code></td>
+<td>从局部变量加载 int</td>
+<td><code>iload_1</code> 加载索引1</td>
+</tr>
+<tr>
+<td><code>istore</code></td>
+<td>int 存入局部变量</td>
+<td><code>istore_2</code> 存入索引2</td>
+</tr>
+<tr>
+<td><code>aload</code></td>
+<td>从局部变量加载引用</td>
+<td><code>aload_0</code> 加载 this</td>
+</tr>
+<tr>
+<td><code>aconst_null</code></td>
+<td>将 null 压栈</td>
+<td>-</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">5</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line">bipush <span class="number">5</span>       <span class="comment">// 将常量 5 压栈</span></span><br><span class="line">istore_1       <span class="comment">// 存入局部变量表位置 1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-算术指令"><a href="#3-2-算术指令" class="headerlink" title="3.2 算术指令"></a>3.2 算术指令</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>iadd</code></td>
+<td>int 相加</td>
+</tr>
+<tr>
+<td><code>isub</code></td>
+<td>int 相减</td>
+</tr>
+<tr>
+<td><code>imul</code></td>
+<td>int 相乘</td>
+</tr>
+<tr>
+<td><code>idiv</code></td>
+<td>int 相除</td>
+</tr>
+<tr>
+<td><code>irem</code></td>
+<td>int 取余</td>
+</tr>
+<tr>
+<td><code>iinc</code></td>
+<td>局部变量自增</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="type">int</span> <span class="variable">sum</span> <span class="operator">=</span> a + b + c;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line">iload_1       <span class="comment">// 加载 a</span></span><br><span class="line">iload_2       <span class="comment">// 加载 b</span></span><br><span class="line">iadd          <span class="comment">// a + b</span></span><br><span class="line">iload_3       <span class="comment">// 加载 c</span></span><br><span class="line">iadd          <span class="comment">// (a+b) + c</span></span><br><span class="line">istore <span class="number">4</span>      <span class="comment">// 存入 sum</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-类型转换指令"><a href="#3-3-类型转换指令" class="headerlink" title="3.3 类型转换指令"></a>3.3 类型转换指令</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="type">double</span> <span class="variable">d</span> <span class="operator">=</span> <span class="number">3.14</span>;</span><br><span class="line"><span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> (<span class="type">int</span>) d;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line">ldc2_w        #<span class="number">4</span>     <span class="comment">// 将 double 3.14 压栈</span></span><br><span class="line">d2i                  <span class="comment">// double 转 int</span></span><br><span class="line">istore_2</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-对象创建与操作"><a href="#3-4-对象创建与操作" class="headerlink" title="3.4 对象创建与操作"></a>3.4 对象创建与操作</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>new</code></td>
+<td>创建新对象</td>
+</tr>
+<tr>
+<td><code>newarray</code></td>
+<td>创建数组</td>
+</tr>
+<tr>
+<td><code>getfield</code></td>
+<td>获取实例字段</td>
+</tr>
+<tr>
+<td><code>putfield</code></td>
+<td>设置实例字段</td>
+</tr>
+<tr>
+<td><code>getstatic</code></td>
+<td>获取静态字段</td>
+</tr>
+<tr>
+<td><code>invokespecial</code></td>
+<td>调用构造函数&#x2F;私有方法</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;hello&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line"><span class="keyword">new</span> #<span class="number">2</span>              <span class="comment">// 创建 String 对象（未初始化）</span></span><br><span class="line">dup                 <span class="comment">// 复制栈顶（为构造函数准备）</span></span><br><span class="line">ldc #<span class="number">3</span>              <span class="comment">// 加载字符串常量 &quot;hello&quot;</span></span><br><span class="line">invokespecial #<span class="number">4</span>   <span class="comment">// 调用 String 构造函数</span></span><br><span class="line">astore_1            <span class="comment">// 存入 s</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>注意</strong>：这里有一个 <code>dup</code> 指令！因为 <code>new</code> 之后对象引用在栈顶，调用构造函数后会消耗掉这个引用，<code>dup</code> 复制了一份用于后续存储。</p>
+</blockquote>
+<h3 id="3-5-方法调用指令"><a href="#3-5-方法调用指令" class="headerlink" title="3.5 方法调用指令"></a>3.5 方法调用指令</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+<th>使用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>invokevirtual</code></td>
+<td>虚方法调用</td>
+<td>普通实例方法（动态分派）</td>
+</tr>
+<tr>
+<td><code>invokespecial</code></td>
+<td>特殊方法调用</td>
+<td>构造函数、私有方法、父类方法</td>
+</tr>
+<tr>
+<td><code>invokestatic</code></td>
+<td>静态方法调用</td>
+<td>静态方法</td>
+</tr>
+<tr>
+<td><code>invokeinterface</code></td>
+<td>接口方法调用</td>
+<td>接口实现类的方法</td>
+</tr>
+<tr>
+<td><code>invokedynamic</code></td>
+<td>动态调用</td>
+<td>Lambda、函数式接口</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line">obj.toString();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line">aload_1              <span class="comment">// 加载 obj</span></span><br><span class="line">invokevirtual #<span class="number">5</span>    <span class="comment">// 调用 toString()</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-6-控制流指令"><a href="#3-6-控制流指令" class="headerlink" title="3.6 控制流指令"></a>3.6 控制流指令</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ifeq</code></td>
+<td>if (&#x3D;&#x3D;0) 跳转</td>
+</tr>
+<tr>
+<td><code>ifne</code></td>
+<td>if (!&#x3D;0) 跳转</td>
+</tr>
+<tr>
+<td><code>if_icmpeq</code></td>
+<td>if (a &#x3D;&#x3D; b) 跳转</td>
+</tr>
+<tr>
+<td><code>ifnull</code></td>
+<td>if (null) 跳转</td>
+</tr>
+<tr>
+<td><code>goto</code></td>
+<td>无条件跳转</td>
+</tr>
+<tr>
+<td><code>tableswitch</code></td>
+<td>switch (tableswitch)</td>
+</tr>
+<tr>
+<td><code>lookupswitch</code></td>
+<td>switch (lookupswitch)</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="keyword">if</span> (x &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    System.out.println(<span class="string">&quot;positive&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码</span></span><br><span class="line">iload_1              <span class="comment">// 加载 x</span></span><br><span class="line">ifgt Label          <span class="comment">// if (x &gt; 0) 跳转</span></span><br><span class="line">getstatic #<span class="number">6</span></span><br><span class="line">ldc <span class="string">&quot;positive&quot;</span></span><br><span class="line">invokevirtual #<span class="number">8</span></span><br><span class="line">Label:</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-7-异常与同步指令"><a href="#3-7-异常与同步指令" class="headerlink" title="3.7 异常与同步指令"></a>3.7 异常与同步指令</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span> / <span class="number">0</span>;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    e.printStackTrace();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码（简化）</span></span><br><span class="line"><span class="number">0</span>: iconst_1</span><br><span class="line"><span class="number">1</span>: iconst_0</span><br><span class="line"><span class="number">2</span>: idiv              <span class="comment">// 触发 ArithmeticException</span></span><br><span class="line"><span class="number">3</span>: istore_1</span><br><span class="line"><span class="number">4</span>: <span class="keyword">goto</span> <span class="number">14</span>           <span class="comment">// 跳过异常处理</span></span><br><span class="line"><span class="number">7</span>: astore_2          <span class="comment">// 捕获异常，存入 e</span></span><br><span class="line"><span class="number">8</span>: aload_2</span><br><span class="line"><span class="number">9</span>: invokevirtual printStackTrace</span><br><span class="line"><span class="number">14</span>: ...</span><br></pre></td></tr></table></figure>
+
+<p>同步指令使用 <code>monitorenter</code> 和 <code>monitorexit</code>。</p>
+<hr>
+<h2 id="四、Lambda-表达式的字节码秘密"><a href="#四、Lambda-表达式的字节码秘密" class="headerlink" title="四、Lambda 表达式的字节码秘密"></a>四、Lambda 表达式的字节码秘密</h2><p>Lambda 是通过 <code>invokedynamic</code> 实现的，JVM 为每个 Lambda 表达式生成一个”引导方法”（Bootstrap Method）。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line">List&lt;Integer&gt; list = Arrays.asList(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line">list.stream().map(x -&gt; x * <span class="number">2</span>).collect(Collectors.toList());</span><br></pre></td></tr></table></figure>
+
+<p>字节码关键部分：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// invokedynamic 调用</span><br><span class="line">invokedynamic #31,  0  // #31 为引导方法索引</span><br><span class="line">                      // 0 表示第 0 个引导方法参数</span><br><span class="line"></span><br><span class="line">// 引导方法（BootstrapMethods）</span><br><span class="line">BootstrapMethods:</span><br><span class="line">  0: #55 invokestatic java/lang/invoke/LambdaMetafactory.metafactory:</span><br><span class="line">      (MethodHandles$Lookup, String, MethodType, MethodType, MethodHandle, MethodType) MethodHandle</span><br><span class="line">    Method arguments:</span><br><span class="line">      #56 (Integer)Integer           // 实际方法类型</span><br><span class="line">      #57 applyToUnsafely:          // Lambda 内部实现的方法</span><br><span class="line">      #58 (Integer)Integer          // 桥方法类型</span><br></pre></td></tr></table></figure>
+
+<p>这意味着 Lambda 在第一次调用时才真正生成对象，实现了<strong>延迟加载</strong>。</p>
+<hr>
+<h2 id="五、实战：用字节码分析代码问题"><a href="#五、实战：用字节码分析代码问题" class="headerlink" title="五、实战：用字节码分析代码问题"></a>五、实战：用字节码分析代码问题</h2><h3 id="5-1-发现无用的字符串拼接"><a href="#5-1-发现无用的字符串拼接" class="headerlink" title="5.1 发现无用的字符串拼接"></a>5.1 发现无用的字符串拼接</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 问题代码</span></span><br><span class="line"><span class="type">String</span> <span class="variable">result</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line"><span class="keyword">for</span> (String s : list) &#123;</span><br><span class="line">    result = result + s;  <span class="comment">// 每循环创建新 StringBuilder</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实际字节码（简化）</span></span><br><span class="line"><span class="number">0</span>: ldc <span class="string">&quot;&quot;</span></span><br><span class="line"><span class="number">1</span>: astore_2</span><br><span class="line"><span class="number">2</span>: aload_0</span><br><span class="line"><span class="number">3</span>: astore_3</span><br><span class="line"><span class="number">4</span>: aload_3</span><br><span class="line"><span class="number">5</span>: <span class="keyword">new</span> <span class="title class_">StringBuilder</span>      <span class="comment">// 每次循环都 new！</span></span><br><span class="line"><span class="number">8</span>: dup</span><br><span class="line"><span class="number">9</span>: invokespecial ...</span><br><span class="line"><span class="number">12</span>: aload_2</span><br><span class="line"><span class="number">13</span>: invokevirtual append</span><br><span class="line"><span class="number">16</span>: aload_1</span><br><span class="line"><span class="number">17</span>: invokevirtual append</span><br><span class="line"><span class="number">20</span>: invokevirtual toString  <span class="comment">// 每次都 toString！</span></span><br><span class="line"><span class="number">23</span>: astore_2</span><br></pre></td></tr></table></figure>
+
+<p><strong>优化建议</strong>：使用 <code>StringBuilder</code> 或 <code>StringJoiner</code>。</p>
+<h3 id="5-2-识别过度装箱"><a href="#5-2-识别过度装箱" class="headerlink" title="5.2 识别过度装箱"></a>5.2 识别过度装箱</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 源码</span></span><br><span class="line">Map&lt;String, Integer&gt; map = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">map.put(<span class="string">&quot;count&quot;</span>, <span class="number">0</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    map.put(<span class="string">&quot;count&quot;</span>, map.get(<span class="string">&quot;count&quot;</span>) + <span class="number">1</span>);  <span class="comment">// 频繁自动装箱/拆箱</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 字节码中发现：</span></span><br><span class="line"><span class="comment">// - integer -&gt; Integer: invokestatic Integer.valueOf</span></span><br><span class="line"><span class="comment">// - Integer -&gt; int: invokestatic Integer.intValue</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>优化建议</strong>：使用 <code>AtomicInteger</code> 或避免在循环中更新 Map 值。</p>
+<hr>
+<h2 id="六、常用字节码分析工具"><a href="#六、常用字节码分析工具" class="headerlink" title="六、常用字节码分析工具"></a>六、常用字节码分析工具</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>说明</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>javap</strong></td>
+<td>JDK 内置</td>
+<td>简单直接，入门首选</td>
+</tr>
+<tr>
+<td><strong>ASM</strong></td>
+<td>Java 字节码操作库</td>
+<td>高性能，Spring、Gradle 使用</td>
+</tr>
+<tr>
+<td><strong>Javassist</strong></td>
+<td>更高层的字节码编辑</td>
+<td>API 友好，适合快速修改</td>
+</tr>
+<tr>
+<td><strong>Bytecode Viewer</strong></td>
+<td>可视化工具</td>
+<td>GUI，界面友好</td>
+</tr>
+<tr>
+<td><strong>IDEA 插件: Bytes&#96; Viewer</strong></td>
+<td>IDEA 内置查看器</td>
+<td>开发时快速查看</td>
+</tr>
+</tbody></table>
+<h3 id="使用-ASM-分析方法调用"><a href="#使用-ASM-分析方法调用" class="headerlink" title="使用 ASM 分析方法调用"></a>使用 ASM 分析方法调用</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> org.objectweb.asm.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MethodAnalyzer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ClassReader</span> <span class="variable">cr</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(<span class="string">&quot;com.example.MyClass&quot;</span>);</span><br><span class="line">        <span class="type">ClassWriter</span> <span class="variable">cw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassWriter</span>(cr, <span class="number">0</span>);</span><br><span class="line">        </span><br><span class="line">        cr.accept(<span class="keyword">new</span> <span class="title class_">ClassVisitor</span>(Opcodes.ASM9, cw) &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> MethodVisitor <span class="title function_">visitMethod</span><span class="params">(<span class="type">int</span> access, String name, </span></span><br><span class="line"><span class="params">                    String desc, String signature, String[] exceptions)</span> &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;方法: &quot;</span> + name + <span class="string">&quot; &quot;</span> + desc);</span><br><span class="line">                <span class="keyword">return</span> <span class="built_in">super</span>.visitMethod(access, name, desc, signature, exceptions);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>本文介绍了 Java 字节码的基础知识：</p>
+<ol>
+<li><strong>字节码是什么</strong>：JVM 执行的中间代码，由 <code>javac</code> 编译生成</li>
+<li><strong>查看方法</strong>：<code>javap</code> 是最常用的工具</li>
+<li><strong>指令分类</strong>：加载存储、算术、类型转换、对象创建、方法调用、控制流、异常同步</li>
+<li><strong>实战应用</strong>：通过字节码分析代码问题，如无效字符串拼接、过度装箱</li>
+<li><strong>工具生态</strong>：ASM、Javassist 等为字节码工程提供基础</li>
+</ol>
+<p>掌握字节码，就像拥有了 JVM 的”透视眼”，能帮助我们写出更高效、更可靠的 Java 代码。</p>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-6.html">JVM 规范: Chapter 6. The Java Virtual Machine Instruction Set</a></li>
+<li><a href="https://docs.oracle.com/javase/specs/jvms/se11/html/">JVMS: Java 虚拟机规范</a></li>
+</ul>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1555066931-4365d14bab8c">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>性能优化</tag>
+        <tag>JVM</tag>
+        <tag>字节码</tag>
+      </tags>
+  </entry>
 </search>
