@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-04-22T02:23:07.541Z</updated>
+  <updated>2026-04-23T06:11:26.450Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,38 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>JVM 监控工具使用指南</title>
+    <link href="https://erdong27.github.io/2026/04/23/2026-04-23-JVM%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"/>
+    <id>https://erdong27.github.io/2026/04/23/2026-04-23-JVM%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</id>
+    <published>2026-04-23T10:00:00.000Z</published>
+    <updated>2026-04-23T06:11:26.450Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;⚠️</summary>
+        
+      
+    
+    
+    
+    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
+    
+    
+    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    <category term="JVM" scheme="https://erdong27.github.io/tags/JVM/"/>
+    
+    <category term="故障排查" scheme="https://erdong27.github.io/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/"/>
+    
+    <category term="监控工具" scheme="https://erdong27.github.io/tags/%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
   
   <entry>
     <title>字节码指令入门</title>
@@ -301,11 +333,11 @@
     
     <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
     
-    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
-    
     <category term="ThreadLocal" scheme="https://erdong27.github.io/tags/ThreadLocal/"/>
     
     <category term="内存泄漏" scheme="https://erdong27.github.io/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"/>
+    
+    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
     
   </entry>
   
@@ -353,8 +385,8 @@
     <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
 &lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 / OpenJDK 11.0.22 / OpenJDK 17.0.10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 &amp;#x2F; 11 &amp;#x2F; 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 &amp;#x2F; OpenJDK 11.0.22 &amp;#x2F; OpenJDK 17.0.10&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;并发包&lt;/strong&gt;: java.util.concurrent (JUC) — 随 JDK 版本内置&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/blockquote&gt;</summary>
@@ -401,11 +433,11 @@
     
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
-    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
-    
     <category term="CompletableFuture" scheme="https://erdong27.github.io/tags/CompletableFuture/"/>
     
     <category term="异步编程" scheme="https://erdong27.github.io/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/"/>
+    
+    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
@@ -433,13 +465,13 @@
     <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     
-    <category term="ThreadPoolExecutor" scheme="https://erdong27.github.io/tags/ThreadPoolExecutor/"/>
-    
     <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
     
     <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
     
     <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    <category term="ThreadPoolExecutor" scheme="https://erdong27.github.io/tags/ThreadPoolExecutor/"/>
     
   </entry>
   
@@ -629,37 +661,6 @@
     <category term="注解" scheme="https://erdong27.github.io/tags/%E6%B3%A8%E8%A7%A3/"/>
     
     <category term="条件装配" scheme="https://erdong27.github.io/tags/%E6%9D%A1%E4%BB%B6%E8%A3%85%E9%85%8D/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Spring Boot 自动配置原理详解</title>
-    <link href="https://erdong27.github.io/2026/03/25/2026-03-25-Spring-Boot-%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/"/>
-    <id>https://erdong27.github.io/2026/03/25/2026-03-25-Spring-Boot-%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/</id>
-    <published>2026-03-25T10:00:00.000Z</published>
-    <updated>2026-03-25T09:07:39.373Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;Spring-Boot-自动配置原理详解&quot;&gt;&lt;a href=&quot;#Spring-Boot-自动配置原理详解&quot; class=&quot;headerlink&quot; title=&quot;Spring Boot 自动配置原理详解&quot;&gt;&lt;/a&gt;Spring Boot</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    <category term="Spring Boot" scheme="https://erdong27.github.io/categories/Java/Spring-Boot/"/>
-    
-    
-    <category term="Spring Boot" scheme="https://erdong27.github.io/tags/Spring-Boot/"/>
-    
-    <category term="AutoConfiguration" scheme="https://erdong27.github.io/tags/AutoConfiguration/"/>
-    
-    <category term="源码分析" scheme="https://erdong27.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
     
   </entry>
   
