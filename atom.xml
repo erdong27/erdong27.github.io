@@ -359,9 +359,9 @@
     <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
 &lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 &amp;#x2F; 11 &amp;#x2F; 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;JDK 并发包&lt;/strong&gt;: &lt;code&gt;java.util.concurrent&lt;/code&gt;（JDK 8+）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Spring Boot&lt;/strong&gt;: 2.7.x &amp;#x2F; 3.x（线程池配置部分）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Spring Boot&lt;/strong&gt;: 2.7.x / 3.x（线程池配置部分）&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/blockquote&gt;
 &lt;hr&gt;
@@ -525,8 +525,8 @@
     <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
 &lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 &amp;#x2F; 11 &amp;#x2F; 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 &amp;#x2F; OpenJDK 11.0.22 &amp;#x2F; OpenJDK 17.0.10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 / OpenJDK 11.0.22 / OpenJDK 17.0.10&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;并发包&lt;/strong&gt;: java.util.concurrent (JUC) — 随 JDK 版本内置&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/blockquote&gt;</summary>
