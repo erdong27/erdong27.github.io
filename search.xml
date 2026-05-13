@@ -7991,4 +7991,248 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>Serverless</tag>
       </tags>
   </entry>
+  <entry>
+    <title>K8s 架构总览与环境搭建</title>
+    <url>/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
+    <content><![CDATA[<h1 id="K8s-架构总览与环境搭建"><a href="#K8s-架构总览与环境搭建" class="headerlink" title="K8s 架构总览与环境搭建"></a>K8s 架构总览与环境搭建</h1><p>在云原生时代，Kubernetes（简称 K8s）已成为容器编排的事实标准。本文将深入剖析 Kubernetes 的核心架构，并手把手完成本地开发环境的搭建。</p>
+<h2 id="一、Kubernetes-架构总览"><a href="#一、Kubernetes-架构总览" class="headerlink" title="一、Kubernetes 架构总览"></a>一、Kubernetes 架构总览</h2><h3 id="1-1-整体架构图"><a href="#1-1-整体架构图" class="headerlink" title="1.1 整体架构图"></a>1.1 整体架构图</h3><p>Kubernetes 采用主从分布式架构，核心组件可分为<strong>控制平面（Control Plane）</strong> 和<strong>工作节点（Worker Node）</strong> 两大部分。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────┐</span><br><span class="line">│                    Control Plane                          │</span><br><span class="line">│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │</span><br><span class="line">│  │ kube-    │  │ kube-    │  │  kube-   │  │  etcd    │ │</span><br><span class="line">│  │ apiserver│  │ scheduler│  │controller│  │          │ │</span><br><span class="line">│  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │</span><br><span class="line">└─────────────────────────────────────────────────────────┘</span><br><span class="line">                              │</span><br><span class="line">┌─────────────────────────────────────────────────────────┐</span><br><span class="line">│                      Data Plane                           │</span><br><span class="line">│  ┌──────────────────────────────────────────────────┐   │</span><br><span class="line">│  │                   Node 1                          │   │</span><br><span class="line">│  │  ┌────────┐  ┌────────┐  ┌─────────────────────┐  │   │</span><br><span class="line">│  │  │ kubelet│  │ kube- │  │      Pod            │  │   │</span><br><span class="line">│  │  │        │  │ proxy │  │  ┌────┐ ┌────┐     │  │   │</span><br><span class="line">│  │  └────────┘  └────────┘  │  │container│container││  │   │</span><br><span class="line">│  │                          │  └────┘ └────┘     │  │   │</span><br><span class="line">│  │                          └─────────────────────┘  │   │</span><br><span class="line">│  └──────────────────────────────────────────────────┘   │</span><br><span class="line">└─────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-控制平面组件"><a href="#1-2-控制平面组件" class="headerlink" title="1.2 控制平面组件"></a>1.2 控制平面组件</h3><h4 id="kube-apiserver"><a href="#kube-apiserver" class="headerlink" title="kube-apiserver"></a>kube-apiserver</h4><p>API Server 是 Kubernetes 的<strong>唯一入口</strong>，所有组件都通过它进行通信：</p>
+<ul>
+<li>提供 RESTful API，供 kubectl、kubelet、其他组件调用</li>
+<li>负责请求的<strong>认证、授权、准入控制</strong></li>
+<li>将集群状态持久化到 etcd</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 通过 kubectl 查看 API Server 信息</span></span><br><span class="line">kubectl cluster-info</span><br><span class="line">kubectl get pods -n kube-system</span><br></pre></td></tr></table></figure>
+
+<h4 id="kube-scheduler"><a href="#kube-scheduler" class="headerlink" title="kube-scheduler"></a>kube-scheduler</h4><p>Scheduler 负责** Pod 调度**：当用户提交一个新 Pod 时，Scheduler 会：</p>
+<ol>
+<li>过滤（Filtering）：剔除不满足条件的节点（资源不足、标签不匹配等）</li>
+<li>打分（Scoring）：对剩余节点打分，选择最优节点</li>
+<li>绑定（Binding）：将 Pod 绑定到目标节点</li>
+</ol>
+<p>调度策略支持标签亲和性、污点容忍、资源请求限制等多种高级特性。</p>
+<h4 id="kube-controller-manager"><a href="#kube-controller-manager" class="headerlink" title="kube-controller-manager"></a>kube-controller-manager</h4><p>Controller Manager 运行所有<strong>控制器进程</strong>，核心控制器包括：</p>
+<table>
+<thead>
+<tr>
+<th>控制器</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Node Controller</td>
+<td>监控节点状态，标记不可用节点</td>
+</tr>
+<tr>
+<td>Replication Controller</td>
+<td>确保 Pod 副本数符合预期</td>
+</tr>
+<tr>
+<td>Deployment Controller</td>
+<td>管理 Deployment 的滚动更新</td>
+</tr>
+<tr>
+<td>Endpoint Controller</td>
+<td>维护 Service 与 Pod 的关联</td>
+</tr>
+<tr>
+<td>Garbage Collector</td>
+<td>清理已删除资源引用的对象</td>
+</tr>
+</tbody></table>
+<h4 id="etcd"><a href="#etcd" class="headerlink" title="etcd"></a>etcd</h4><p>etcd 是 Kubernetes 的<strong>分布式键值存储</strong>：</p>
+<ul>
+<li>保存集群所有配置数据和状态</li>
+<li>基于 Raft 协议保证强一致性</li>
+<li>生产环境建议使用 3 节点及以上集群部署</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 etcd 存储的 key</span></span><br><span class="line">kubectl get namespaces</span><br><span class="line"><span class="comment"># 对应 etcd 中的 key 路径类似：/registry/namespaces/default</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-工作节点组件"><a href="#1-3-工作节点组件" class="headerlink" title="1.3 工作节点组件"></a>1.3 工作节点组件</h3><h4 id="kubelet"><a href="#kubelet" class="headerlink" title="kubelet"></a>kubelet</h4><p>kubelet 是运行在<strong>每个节点上的 agent</strong>：</p>
+<ul>
+<li>监听来自 API Server 的指令</li>
+<li>管理 Pod 的生命周期（创建、销毁、健康检查）</li>
+<li>向 API Server 汇报节点状态</li>
+</ul>
+<h4 id="kube-proxy"><a href="#kube-proxy" class="headerlink" title="kube-proxy"></a>kube-proxy</h4><p>kube-proxy 实现 Kubernetes <strong>Service 的网络代理</strong>：</p>
+<ul>
+<li>维护节点上的网络规则</li>
+<li>支持 iptables 或 IPVS 模式</li>
+<li>实现 Service 的负载分发</li>
+</ul>
+<h4 id="Container-Runtime"><a href="#Container-Runtime" class="headerlink" title="Container Runtime"></a>Container Runtime</h4><p>容器运行时负责镜像管理和容器执行：</p>
+<ul>
+<li>Kubernetes 1.24 之后默认使用 <strong>containerd</strong></li>
+<li>之前版本常用 Docker Engine（通过 dockershim）</li>
+<li>其他选项：cri-o、mirantis&#x2F;cri-dockerd</li>
+</ul>
+<h2 id="二、核心概念速览"><a href="#二、核心概念速览" class="headerlink" title="二、核心概念速览"></a>二、核心概念速览</h2><h3 id="2-1-Pod"><a href="#2-1-Pod" class="headerlink" title="2.1 Pod"></a>2.1 Pod</h3><p>Pod 是 Kubernetes 的<strong>最小调度单元</strong>，一个 Pod 可以包含一个或多个紧密耦合的容器：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-Deployment"><a href="#2-2-Deployment" class="headerlink" title="2.2 Deployment"></a>2.2 Deployment</h3><p>Deployment 管理 Pod 的声明式更新：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;64Mi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;250m&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;500m&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-Service"><a href="#2-3-Service" class="headerlink" title="2.3 Service"></a>2.3 Service</h3><p>Service 为 Pod 提供稳定的访问入口：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-Namespace"><a href="#2-4-Namespace" class="headerlink" title="2.4 Namespace"></a>2.4 Namespace</h3><p>Namespace 提供资源隔离和多环境支持：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建命名空间</span></span><br><span class="line">kubectl create namespace dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在指定命名空间操作</span></span><br><span class="line">kubectl get pods -n dev</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、本地环境搭建"><a href="#三、本地环境搭建" class="headerlink" title="三、本地环境搭建"></a>三、本地环境搭建</h2><h3 id="3-1-环境要求"><a href="#3-1-环境要求" class="headerlink" title="3.1 环境要求"></a>3.1 环境要求</h3><table>
+<thead>
+<tr>
+<th>要求</th>
+<th>最低配置</th>
+<th>推荐配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CPU</td>
+<td>2 核</td>
+<td>4 核+</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>4 GB</td>
+<td>8 GB+</td>
+</tr>
+<tr>
+<td>磁盘</td>
+<td>20 GB</td>
+<td>50 GB+</td>
+</tr>
+<tr>
+<td>系统</td>
+<td>macOS &#x2F; Linux &#x2F; Windows</td>
+<td>macOS &#x2F; Linux</td>
+</tr>
+</tbody></table>
+<h3 id="3-2-安装-kubectl"><a href="#3-2-安装-kubectl" class="headerlink" title="3.2 安装 kubectl"></a>3.2 安装 kubectl</h3><p>kubectl 是 Kubernetes 命令行工具。</p>
+<p><strong>macOS：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 通过 Homebrew 安装</span></span><br><span class="line">brew install kubectl</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证安装</span></span><br><span class="line">kubectl version --client</span><br></pre></td></tr></table></figure>
+
+<p><strong>Linux：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 下载最新版</span></span><br><span class="line">curl -LO <span class="string">&quot;https://dl.k8s.io/release/<span class="subst">$(curl -L -s https://dl.k8s.io/release/stable.txt)</span>/bin/linux/amd64/kubectl&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加执行权限</span></span><br><span class="line"><span class="built_in">chmod</span> +x kubectl</span><br><span class="line"></span><br><span class="line"><span class="comment"># 移动到 PATH</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> kubectl /usr/local/bin/</span><br></pre></td></tr></table></figure>
+
+<p><strong>Windows：</strong></p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 通过 winget 安装</span></span><br><span class="line">winget install Kubernetes.kubectl</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-Minikube-安装"><a href="#3-3-Minikube-安装" class="headerlink" title="3.3 Minikube 安装"></a>3.3 Minikube 安装</h3><p>Minikube 适合<strong>单节点本地开发</strong>，支持多种 hypervisor。</p>
+<p><strong>macOS：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装 hypervisor（选择一种）</span></span><br><span class="line">brew install hyperkit</span><br><span class="line"><span class="comment"># 或</span></span><br><span class="line">brew install virtualbox</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 Minikube</span></span><br><span class="line">brew install minikube</span><br></pre></td></tr></table></figure>
+
+<p><strong>Linux：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装 Docker（推荐作为驱动）</span></span><br><span class="line">curl -fsSL https://get.docker.com | sh</span><br><span class="line"><span class="built_in">sudo</span> usermod -aG docker <span class="variable">$USER</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 Minikube</span></span><br><span class="line">curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64</span><br><span class="line"><span class="built_in">sudo</span> install minikube-linux-amd64 /usr/local/bin/minikube</span><br></pre></td></tr></table></figure>
+
+<p><strong>Windows：</strong></p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装 Docker Desktop（启用 WSL2 后端）</span></span><br><span class="line">winget install Docker.DockerDesktop</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 Minikube</span></span><br><span class="line">winget install minikube</span><br></pre></td></tr></table></figure>
+
+<p><strong>启动集群：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 默认使用 Docker 驱动</span></span><br><span class="line">minikube start</span><br><span class="line"></span><br><span class="line"><span class="comment"># 指定版本和资源配置</span></span><br><span class="line">minikube start --kubernetes-version=v1.28.0 --cpus=4 --memory=8g</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用特定驱动</span></span><br><span class="line">minikube start --driver=hyperkit   <span class="comment"># macOS</span></span><br><span class="line">minikube start --driver=docker     <span class="comment"># Linux/Windows</span></span><br><span class="line">minikube start --driver=virtualbox <span class="comment"># Windows</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>常用命令：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看状态</span></span><br><span class="line">minikube status</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入集群节点（相当于 ssh）</span></span><br><span class="line">minikube ssh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 访问 Kubernetes Dashboard</span></span><br><span class="line">minikube dashboard</span><br><span class="line"></span><br><span class="line"><span class="comment"># 停止集群</span></span><br><span class="line">minikube stop</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除集群</span></span><br><span class="line">minikube delete</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看集群 IP</span></span><br><span class="line">minikube ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加 Ingress 插件</span></span><br><span class="line">minikube addons <span class="built_in">enable</span> ingress</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-Kind-安装"><a href="#3-4-Kind-安装" class="headerlink" title="3.4 Kind 安装"></a>3.4 Kind 安装</h3><p>Kind（Kubernetes in Docker）使用 Docker 容器模拟 K8s 节点，启动更快，适合 CI&#x2F;CD 场景。</p>
+<p><strong>安装 Kind：</strong></p>
+<p><strong>macOS：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">brew install kind</span><br></pre></td></tr></table></figure>
+
+<p><strong>Linux：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64</span><br><span class="line"><span class="built_in">chmod</span> +x ./kind</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> ./kind /usr/local/bin/kind</span><br></pre></td></tr></table></figure>
+
+<p><strong>Windows：</strong></p>
+<figure class="highlight powershell"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 使用 winget</span></span><br><span class="line">winget install KubernetesKind.kind</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或手动下载</span></span><br><span class="line"><span class="built_in">curl</span> <span class="literal">-Lo</span> kind<span class="literal">-windows-amd64</span>.exe https://kind.sigs.k8s.io/dl/v0.<span class="number">20.0</span>/kind<span class="literal">-windows-amd64</span></span><br><span class="line"><span class="comment"># 将 exe 移动到 PATH 中</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>创建集群：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 快速创建单节点集群</span></span><br><span class="line">kind create cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 指定集群名称</span></span><br><span class="line">kind create cluster --name my-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建多节点集群</span></span><br><span class="line"><span class="built_in">cat</span> &gt; kind-config.yaml &lt;&lt;<span class="string">EOF</span></span><br><span class="line"><span class="string">kind: Cluster</span></span><br><span class="line"><span class="string">apiVersion: kind.x-k8s.io/v1alpha4</span></span><br><span class="line"><span class="string">nodes:</span></span><br><span class="line"><span class="string">- role: control-plane</span></span><br><span class="line"><span class="string">  kubeadmConfigPatches:</span></span><br><span class="line"><span class="string">  - |</span></span><br><span class="line"><span class="string">    kind: InitConfiguration</span></span><br><span class="line"><span class="string">    nodeRegistration:</span></span><br><span class="line"><span class="string">      kubeletExtraArgs:</span></span><br><span class="line"><span class="string">        node-labels: &quot;ingress-ready=true&quot;</span></span><br><span class="line"><span class="string">  extraPortMappings:</span></span><br><span class="line"><span class="string">  - containerPort: 80</span></span><br><span class="line"><span class="string">    hostPort: 80</span></span><br><span class="line"><span class="string">    protocol: TCP</span></span><br><span class="line"><span class="string">  - containerPort: 443</span></span><br><span class="line"><span class="string">    hostPort: 443</span></span><br><span class="line"><span class="string">    protocol: TCP</span></span><br><span class="line"><span class="string">- role: worker</span></span><br><span class="line"><span class="string">- role: worker</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line"></span><br><span class="line">kind create cluster --config kind-config.yaml</span><br></pre></td></tr></table></figure>
+
+<p><strong>常用命令：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 列出所有集群</span></span><br><span class="line">kind get clusters</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除集群</span></span><br><span class="line">kind delete cluster --name my-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 加载镜像到集群节点</span></span><br><span class="line">kind load docker-image my-app:v1 my-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看节点</span></span><br><span class="line">kubectl get nodes</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-5-Docker-Desktop-内置-K8s"><a href="#3-5-Docker-Desktop-内置-K8s" class="headerlink" title="3.5 Docker Desktop 内置 K8s"></a>3.5 Docker Desktop 内置 K8s</h3><p>如果你已在使用 Docker Desktop，可以直接启用内置 Kubernetes：</p>
+<ol>
+<li>打开 Docker Desktop 设置 → Kubernetes</li>
+<li>勾选 “Enable Kubernetes”</li>
+<li>点击 “Install”</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 验证</span></span><br><span class="line">kubectl get nodes</span><br><span class="line"><span class="comment"># NAME             STATUS   ROLES           AGE   VERSION</span></span><br><span class="line"><span class="comment"># docker-desktop   Ready    control-plane   10m   v1.28.0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-6-对比选型建议"><a href="#3-6-对比选型建议" class="headerlink" title="3.6 对比选型建议"></a>3.6 对比选型建议</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Minikube</th>
+<th>Kind</th>
+<th>Docker Desktop K8s</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>启动速度</td>
+<td>较慢</td>
+<td>快</td>
+<td>中等</td>
+</tr>
+<tr>
+<td>资源占用</td>
+<td>较高</td>
+<td>低</td>
+<td>中等</td>
+</tr>
+<tr>
+<td>多节点支持</td>
+<td>否</td>
+<td>是</td>
+<td>有限</td>
+</tr>
+<tr>
+<td>Ingress 支持</td>
+<td>需插件</td>
+<td>需配置</td>
+<td>需配置</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>功能测试</td>
+<td>CI&#x2F;CD、快速迭代</td>
+<td>Docker 用户</td>
+</tr>
+</tbody></table>
+<p><strong>推荐</strong>：</p>
+<ul>
+<li><strong>入门学习</strong> → Minikube（功能最完整）</li>
+<li><strong>CI&#x2F;CD 集成</strong> → Kind（启动快、容器化）</li>
+<li><strong>日常开发</strong> → Docker Desktop K8s（已有 Docker 环境）</li>
+</ul>
+<h2 id="四、快速验证部署"><a href="#四、快速验证部署" class="headerlink" title="四、快速验证部署"></a>四、快速验证部署</h2><p>完成环境搭建后，部署一个简单应用验证集群是否正常：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 部署 Nginx</span></span><br><span class="line">kubectl create deployment nginx --image=nginx:1.25</span><br><span class="line"></span><br><span class="line"><span class="comment"># 暴露服务</span></span><br><span class="line">kubectl expose deployment nginx --port=80 --<span class="built_in">type</span>=NodePort</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Pod 和 Service</span></span><br><span class="line">kubectl get pods,svc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 访问服务</span></span><br><span class="line">kubectl port-forward svc/nginx 8080:80</span><br><span class="line"><span class="comment"># 浏览器打开 http://localhost:8080</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="五、常用工具推荐"><a href="#五、常用工具推荐" class="headerlink" title="五、常用工具推荐"></a>五、常用工具推荐</h2><h3 id="5-1-kubectl-插件"><a href="#5-1-kubectl-插件" class="headerlink" title="5.1 kubectl 插件"></a>5.1 kubectl 插件</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装 krew（kubectl 插件管理器）</span></span><br><span class="line">(</span><br><span class="line">  <span class="built_in">set</span> -x; <span class="built_in">cd</span> <span class="string">&quot;<span class="subst">$(mktemp -d)</span>&quot;</span> &amp;&amp;</span><br><span class="line">  KREW=<span class="string">&quot;krew-<span class="variable">$KREWOS</span>-amd64&quot;</span> &amp;&amp;</span><br><span class="line">  curl -fsSLO <span class="string">&quot;https://github.com/kubernetes-sigs/krew/releases/latest/download/<span class="variable">$KREW</span>.tar.gz&quot;</span> &amp;&amp;</span><br><span class="line">  tar zxvf <span class="string">&quot;<span class="variable">$KREW</span>&quot;</span> &amp;&amp;</span><br><span class="line">  ./krew-<span class="string">&quot;<span class="subst">$(uname | tr &#x27;[:upper:]&#x27; &#x27;[:lower:]&#x27;)</span>_amd64&quot;</span> install krew</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常用插件</span></span><br><span class="line">kubectl krew install ctx      <span class="comment"># 快速切换集群</span></span><br><span class="line">kubectl krew install ns       <span class="comment"># 快速切换命名空间</span></span><br><span class="line">kubectl krew install node-shell  <span class="comment"># 进入任意节点</span></span><br><span class="line">kubectl krew install tree    <span class="comment"># 查看资源树状关系</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-Lens-IDE"><a href="#5-2-Lens-IDE" class="headerlink" title="5.2 Lens IDE"></a>5.2 Lens IDE</h3><p>Lens 是功能强大的 Kubernetes 桌面客户端，支持多集群管理。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># macOS</span></span><br><span class="line">brew install --cask lens</span><br><span class="line"></span><br><span class="line"><span class="comment"># 下载地址：https://k8slens.dev/</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文深入剖析了 Kubernetes 的核心架构：</p>
+<ul>
+<li><strong>控制平面</strong>：API Server（统一入口）、Scheduler（Pod 调度）、Controller Manager（控制器运行）、etcd（状态存储）</li>
+<li><strong>工作节点</strong>：kubelet（节点代理）、kube-proxy（网络代理）、Container Runtime（容器运行）</li>
+<li><strong>本地环境</strong>：Minikube 适合功能测试，Kind 适合 CI&#x2F;CD，根据实际需求选择</li>
+</ul>
+<p>下一篇文章将深入讲解 <strong>Pod 的生命周期与设计模式</strong>，敬请期待。</p>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>Minikube</tag>
+        <tag>Kind</tag>
+        <tag>容器编排</tag>
+      </tags>
+  </entry>
 </search>

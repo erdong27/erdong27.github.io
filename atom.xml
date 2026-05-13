@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-08T00:38:25.782Z</updated>
+  <updated>2026-05-13T00:50:16.095Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>K8s 架构总览与环境搭建</title>
+    <link href="https://erdong27.github.io/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"/>
+    <id>https://erdong27.github.io/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</id>
+    <published>2026-05-13T00:48:00.000Z</published>
+    <updated>2026-05-13T00:50:16.095Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;K8s-架构总览与环境搭建&quot;&gt;&lt;a href=&quot;#K8s-架构总览与环境搭建&quot; class=&quot;headerlink&quot; title=&quot;K8s 架构总览与环境搭建&quot;&gt;&lt;/a&gt;K8s 架构总览与环境搭建&lt;/h1&gt;&lt;p&gt;在云原生时代，Kubernetes（简称</summary>
+        
+      
+    
+    
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/categories/Kubernetes/"/>
+    
+    
+    <category term="云原生" scheme="https://erdong27.github.io/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/"/>
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="Minikube" scheme="https://erdong27.github.io/tags/Minikube/"/>
+    
+    <category term="Kind" scheme="https://erdong27.github.io/tags/Kind/"/>
+    
+    <category term="容器编排" scheme="https://erdong27.github.io/tags/%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/"/>
+    
+  </entry>
   
   <entry>
     <title>架构演进之路总结</title>
@@ -655,39 +688,6 @@
     <category term="ReentrantLock" scheme="https://erdong27.github.io/tags/ReentrantLock/"/>
     
     <category term="AQS" scheme="https://erdong27.github.io/tags/AQS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>CompletableFuture 异步编排完全指南</title>
-    <link href="https://erdong27.github.io/2026/04/08/2026-04-08-CompletableFuture%E5%BC%82%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/"/>
-    <id>https://erdong27.github.io/2026/04/08/2026-04-08-CompletableFuture%E5%BC%82%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</id>
-    <published>2026-04-08T10:00:00.000Z</published>
-    <updated>2026-04-08T00:39:26.547Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;CompletableFuture-异步编排完全指南&quot;&gt;&lt;a href=&quot;#CompletableFuture-异步编排完全指南&quot; class=&quot;headerlink&quot; title=&quot;CompletableFuture</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
-    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-    <category term="CompletableFuture" scheme="https://erdong27.github.io/tags/CompletableFuture/"/>
-    
-    <category term="异步编程" scheme="https://erdong27.github.io/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/"/>
     
   </entry>
   
