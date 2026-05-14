@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-13T00:50:16.095Z</updated>
+  <updated>2026-05-14T00:37:08.841Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Pod 深入理解——最小调度单元</title>
+    <link href="https://erdong27.github.io/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/"/>
+    <id>https://erdong27.github.io/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/</id>
+    <published>2026-05-14T00:35:00.000Z</published>
+    <updated>2026-05-14T00:37:08.841Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Pod-深入理解——最小调度单元&quot;&gt;&lt;a href=&quot;#Pod-深入理解——最小调度单元&quot; class=&quot;headerlink&quot; title=&quot;Pod 深入理解——最小调度单元&quot;&gt;&lt;/a&gt;Pod 深入理解——最小调度单元&lt;/h1&gt;&lt;p&gt;上一篇文章我们聊了 K8s</summary>
+        
+      
+    
+    
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/categories/Kubernetes/"/>
+    
+    
+    <category term="云原生" scheme="https://erdong27.github.io/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/"/>
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="容器编排" scheme="https://erdong27.github.io/tags/%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/"/>
+    
+    <category term="Pod" scheme="https://erdong27.github.io/tags/Pod/"/>
+    
+  </entry>
   
   <entry>
     <title>K8s 架构总览与环境搭建</title>
@@ -654,40 +685,6 @@
     <category term="ConcurrentHashMap" scheme="https://erdong27.github.io/tags/ConcurrentHashMap/"/>
     
     <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ReentrantLock 源码级分析</title>
-    <link href="https://erdong27.github.io/2026/04/09/2026-04-09-ReentrantLock%E6%BA%90%E7%A0%81%E7%BA%A7%E5%88%86%E6%9E%90/"/>
-    <id>https://erdong27.github.io/2026/04/09/2026-04-09-ReentrantLock%E6%BA%90%E7%A0%81%E7%BA%A7%E5%88%86%E6%9E%90/</id>
-    <published>2026-04-09T10:00:00.000Z</published>
-    <updated>2026-04-09T00:36:34.133Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
-&lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;JDK&lt;/strong&gt;: OpenJDK 8u392 / OpenJDK 11.0.22 / OpenJDK 17.0.10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;并发包&lt;/strong&gt;: java.util.concurrent (JUC) — 随 JDK 版本内置&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/blockquote&gt;</summary>
-    
-    
-    
-    <category term="Java 后端进阶" scheme="https://erdong27.github.io/categories/Java-%E5%90%8E%E7%AB%AF%E8%BF%9B%E9%98%B6/"/>
-    
-    
-    <category term="源码分析" scheme="https://erdong27.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
-    
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
-    <category term="并发编程" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    <category term="ReentrantLock" scheme="https://erdong27.github.io/tags/ReentrantLock/"/>
-    
-    <category term="AQS" scheme="https://erdong27.github.io/tags/AQS/"/>
     
   </entry>
   

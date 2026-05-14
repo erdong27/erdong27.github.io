@@ -8235,4 +8235,191 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>容器编排</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Pod 深入理解——最小调度单元</title>
+    <url>/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/</url>
+    <content><![CDATA[<h1 id="Pod-深入理解——最小调度单元"><a href="#Pod-深入理解——最小调度单元" class="headerlink" title="Pod 深入理解——最小调度单元"></a>Pod 深入理解——最小调度单元</h1><p>上一篇文章我们聊了 K8s 的整体架构，今天把目光聚焦到 Kubernetes 里最基础也最重要的概念——<strong>Pod</strong>。</p>
+<p>如果你把 K8s 想象成一个操作系统，那 Pod 就是这个系统里的<strong>进程</strong>。你所有的应用最终都会跑在一个个 Pod 里面。理解了 Pod，就理解了 K8s 的一半。</p>
+<h2 id="一、为什么需要-Pod？"><a href="#一、为什么需要-Pod？" class="headerlink" title="一、为什么需要 Pod？"></a>一、为什么需要 Pod？</h2><p>很多刚接触 K8s 的人都会有一个疑问：<strong>Docker 已经有容器了，为什么 K8s 还要搞一个 Pod 出来？直接调度容器不就行了吗？</strong></p>
+<p>这个问题的答案藏在真实的生产场景里。</p>
+<h3 id="1-1-容器不是万能的"><a href="#1-1-容器不是万能的" class="headerlink" title="1.1 容器不是万能的"></a>1.1 容器不是万能的</h3><p>一个容器只做一件事，这是 Docker 的设计哲学。但现实世界中，有些任务天然需要多个进程紧密配合。</p>
+<p>举个例子：你有一个 Java Web 应用，它的日志文件需要用一个 <strong>Fluentd</strong> 容器实时采集并转发到日志中心。这两个容器：</p>
+<ul>
+<li><strong>必须部署在同一台机器上</strong>（共享日志文件）</li>
+<li><strong>必须同时启动、同时销毁</strong></li>
+<li><strong>共享同一个网络命名空间</strong>（可以直接用 localhost 通信）</li>
+<li><strong>共享存储卷</strong>（Fluentd 读 Java 写的日志）</li>
+</ul>
+<p>如果只调度”容器”，你要自己维护这些容器之间的关联关系，K8s 调度器也没法保证它们一定被分到同一台机器。</p>
+<h3 id="1-2-Pod-就是答案"><a href="#1-2-Pod-就是答案" class="headerlink" title="1.2 Pod 就是答案"></a>1.2 Pod 就是答案</h3><p>Pod 把<strong>一组紧密耦合的容器</strong>打包成一个调度单元：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌────────────────────────────────────────────┐</span><br><span class="line">│                  Pod                        │</span><br><span class="line">│                                            │</span><br><span class="line">│  ┌──────────────┐  ┌──────────────┐        │</span><br><span class="line">│  │  App 容器     │  │  Sidecar     │        │</span><br><span class="line">│  │  (主容器)     │  │  (辅助容器)   │        │</span><br><span class="line">│  │              │  │  Fluentd     │        │</span><br><span class="line">│  └──────┬───────┘  └──────┬───────┘        │</span><br><span class="line">│         │                 │                │</span><br><span class="line">│         └────────┬────────┘                │</span><br><span class="line">│                  │                         │</span><br><span class="line">│          ┌───────┴───────┐                 │</span><br><span class="line">│          │  共享 Volume   │                 │</span><br><span class="line">│          │  (日志文件)     │                 │</span><br><span class="line">│          └───────────────┘                 │</span><br><span class="line">│                                            │</span><br><span class="line">│  共享网络命名空间 (同一个 IP)                │</span><br><span class="line">│  共享 IPC 命名空间                          │</span><br><span class="line">└────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<p>简单说：<strong>Pod 是 K8s 能调度的最小单位，一个 Pod 里可以跑一个或多个容器。</strong></p>
+<h2 id="二、Pod-的网络模型"><a href="#二、Pod-的网络模型" class="headerlink" title="二、Pod 的网络模型"></a>二、Pod 的网络模型</h2><p>Pod 的网络设计非常简洁优雅，理解了它，后面排查网络问题会轻松很多。</p>
+<h3 id="2-1-一个-Pod-一个-IP"><a href="#2-1-一个-Pod-一个-IP" class="headerlink" title="2.1 一个 Pod 一个 IP"></a>2.1 一个 Pod 一个 IP</h3><p>每个 Pod 启动时会分配一个<strong>集群内部 IP</strong>，这个 IP 是 Pod 里所有容器共享的。</p>
+<p>这意味着什么？同一个 Pod 里的两个容器，可以直接用 <code>localhost:端口</code> 互相通信，就像跑在同一台机器上的两个进程一样。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Pod 内的 App 容器可以通过 localhost 访问 Sidecar</span></span><br><span class="line">curl http://localhost:8080/health</span><br></pre></td></tr></table></figure>
+<h3 id="2-2-Pod-之间怎么通信？"><a href="#2-2-Pod-之间怎么通信？" class="headerlink" title="2.2 Pod 之间怎么通信？"></a>2.2 Pod 之间怎么通信？</h3><p>不同 Pod 之间直接用 Pod IP 通信，<strong>不需要 NAT（网络地址转换）</strong>。这个模型叫做 <strong>“每 Pod 每 IP”（One IP Per Pod）</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Pod A (10.244.1.5)  ←──── 直接通信 ────→  Pod B (10.244.2.3)</span><br><span class="line">   │                                              │</span><br><span class="line">   └──── 10.244.1.0/24 ──── 节点1 ────┘          └──── 节点2 ──── 10.244.2.0/24</span><br></pre></td></tr></table></figure>
+<p>实际是由节点上的 <strong>CNI 插件</strong>（如 Flannel、Calico、Cilium）来实现的底层网络互联。你不用关心细节，但要知道 K8s 的网络模型是这样的。</p>
+<h3 id="2-3-localhost-的坑"><a href="#2-3-localhost-的坑" class="headerlink" title="2.3 localhost 的坑"></a>2.3 localhost 的坑</h3><p>正因为共享网络命名空间，同一个 Pod 里的容器<strong>不能使用相同的端口</strong>。如果 App 容器占了 8080，Sidecar 就不能用 8080。</p>
+<p>这是很多人常犯的错，尤其是从 Docker Compose 迁移过来的人——在 Compose 里每个容器有独立网络，端口不冲突；但在 Pod 里，端口是共享的。</p>
+<h2 id="三、Pod-的存储模型"><a href="#三、Pod-的存储模型" class="headerlink" title="三、Pod 的存储模型"></a>三、Pod 的存储模型</h2><p>容器本身是临时的，容器被销毁，里面的数据就没了。Pod 里的容器需要持久化数据怎么办？答案是 <strong>Volume</strong>。</p>
+<h3 id="3-1-Pod-内共享-Volume"><a href="#3-1-Pod-内共享-Volume" class="headerlink" title="3.1 Pod 内共享 Volume"></a>3.1 Pod 内共享 Volume</h3><p>Volume 定义在 Pod 级别，Pod 里的所有容器都可以挂载同一个 Volume。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-with-sidecar</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="comment"># 主容器：写日志</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">my-app:latest</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">log-volume</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/var/log/app</span></span><br><span class="line"></span><br><span class="line">  <span class="comment"># Sidecar：读日志</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">log-collector</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">fluentd:latest</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">log-volume</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/var/log/app</span>    <span class="comment"># 挂载同一路径，读 App 写的日志</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">log-volume</span></span><br><span class="line">    <span class="attr">emptyDir:</span> &#123;&#125;   <span class="comment"># 临时存储，Pod 删除后数据消失</span></span><br></pre></td></tr></table></figure>
+<p>这里 <code>emptyDir</code> 是一种简单的临时卷，Pod 销毁后数据也没了。如果需要持久化，可以用 <code>hostPath</code>、<code>NFS</code> 或者后面会讲到的 <code>PV/PVC</code>。</p>
+<h2 id="四、Pod-的生命周期"><a href="#四、Pod-的生命周期" class="headerlink" title="四、Pod 的生命周期"></a>四、Pod 的生命周期</h2><p>Pod 从创建到销毁会经历一系列状态变化，搞清楚这些状态对排查问题非常重要。</p>
+<h3 id="4-1-Pod-的五种状态"><a href="#4-1-Pod-的五种状态" class="headerlink" title="4.1 Pod 的五种状态"></a>4.1 Pod 的五种状态</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>常见原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pending</strong></td>
+<td>已被接受但容器还没启动</td>
+<td>镜像拉取中、调度中、资源不足</td>
+</tr>
+<tr>
+<td><strong>Running</strong></td>
+<td>至少一个容器正在运行</td>
+<td>正常运行</td>
+</tr>
+<tr>
+<td><strong>Succeeded</strong></td>
+<td>所有容器正常退出</td>
+<td>一次性任务（Job）执行完成</td>
+</tr>
+<tr>
+<td><strong>Failed</strong></td>
+<td>至少一个容器异常退出</td>
+<td>程序崩溃、OOM 被杀</td>
+</tr>
+<tr>
+<td><strong>Unknown</strong></td>
+<td>无法获取 Pod 状态</td>
+<td>节点失联</td>
+</tr>
+</tbody>
+</table>
+</div>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 状态</span></span><br><span class="line">kubectl get pods -o wide</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看详细信息（排查问题必备）</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看日志</span></span><br><span class="line">kubectl logs &lt;pod-name&gt;</span><br><span class="line">kubectl logs &lt;pod-name&gt; -c &lt;container-name&gt;   <span class="comment"># 指定容器</span></span><br></pre></td></tr></table></figure>
+<h3 id="4-2-Pod-的创建过程"><a href="#4-2-Pod-的创建过程" class="headerlink" title="4.2 Pod 的创建过程"></a>4.2 Pod 的创建过程</h3><p>当你提交一个 Pod 的 YAML 文件后，背后发生的事情：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">用户提交 YAML</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">API Server 校验 + 存储</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">Scheduler 调度（选节点）</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">kubelet 收到指令</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">拉取镜像（如果本地没有）</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">挂载 Volume</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">创建容器（先启动 Pause 容器）</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">执行 PostStart Hook</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">健康检查（liveness/readiness probe）</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">Pod Running ✅</span><br></pre></td></tr></table></figure>
+<p>这里有个细节：每个 Pod 实际上都会先启动一个叫 <strong>Pause（也叫 sandbox）容器</strong>的”隐形”容器。它什么业务都不做，唯一的作用就是<strong>持有 Pod 的网络命名空间和共享 Volume</strong>，让其他业务容器加入进来。</p>
+<p>所以你在一个 Pod 里跑 3 个容器，实际上有 4 个容器（1 个 Pause + 3 个业务容器）。这也是为什么 Pod 内的容器能共享网络和存储的原因。</p>
+<h3 id="4-3-Pod-的终止过程"><a href="#4-3-Pod-的终止过程" class="headerlink" title="4.3 Pod 的终止过程"></a>4.3 Pod 的终止过程</h3><p>Pod 被删除时，K8s 不会直接”杀”掉它，而是走一个优雅的终止流程：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">发送 SIGTERM 信号</span><br><span class="line">      │</span><br><span class="line">      ▼</span><br><span class="line">等待 terminationGracePeriodSeconds（默认 30 秒）</span><br><span class="line">      │</span><br><span class="line">      ├── 容器正常退出 → 执行 PreStop Hook → Pod 消亡</span><br><span class="line">      │</span><br><span class="line">      └── 30 秒内没退出 → 发送 SIGKILL → 强制杀死</span><br></pre></td></tr></table></figure>
+<p>这个过程非常关键，尤其在<strong>零停机更新</strong>的场景下。如果你的应用不处理 SIGTERM，30 秒后就会被强制杀掉，正在处理的请求可能中断。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">terminationGracePeriodSeconds:</span> <span class="number">60</span>    <span class="comment"># 延长优雅退出时间</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">lifecycle:</span></span><br><span class="line">      <span class="attr">preStop:</span></span><br><span class="line">        <span class="attr">exec:</span></span><br><span class="line">          <span class="attr">command:</span> [<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;sleep 10&quot;</span>]   <span class="comment"># 等待 10 秒再退出</span></span><br></pre></td></tr></table></figure>
+<h2 id="五、Pod-的健康检查"><a href="#五、Pod-的健康检查" class="headerlink" title="五、Pod 的健康检查"></a>五、Pod 的健康检查</h2><p>Pod 跑起来不代表它”健康”。K8s 提供了两种探针来判断 Pod 是否正常工作。</p>
+<h3 id="5-1-livenessProbe（存活探针）"><a href="#5-1-livenessProbe（存活探针）" class="headerlink" title="5.1 livenessProbe（存活探针）"></a>5.1 livenessProbe（存活探针）</h3><p><strong>作用</strong>：容器”死了没”？如果探针检查失败，K8s 会<strong>重启容器</strong>。</p>
+<p>适合的场景：程序死锁、无限循环、假死状态。</p>
+<h3 id="5-2-readinessProbe（就绪探针）"><a href="#5-2-readinessProbe（就绪探针）" class="headerlink" title="5.2 readinessProbe（就绪探针）"></a>5.2 readinessProbe（就绪探针）</h3><p><strong>作用</strong>：容器”准备好了没”？如果探针检查失败，Pod 不会从 Service 中接收流量，但容器不会被重启。</p>
+<p>适合的场景：应用启动慢、预热中、临时过载。</p>
+<h3 id="5-3-三种检查方式"><a href="#5-3-三种检查方式" class="headerlink" title="5.3 三种检查方式"></a>5.3 三种检查方式</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">my-app:latest</span></span><br><span class="line">    <span class="comment"># HTTP 检查</span></span><br><span class="line">    <span class="attr">livenessProbe:</span></span><br><span class="line">      <span class="attr">httpGet:</span></span><br><span class="line">        <span class="attr">path:</span> <span class="string">/healthz</span></span><br><span class="line">        <span class="attr">port:</span> <span class="number">8080</span></span><br><span class="line">      <span class="attr">initialDelaySeconds:</span> <span class="number">15</span>    <span class="comment"># 启动后等 15 秒再开始检查</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">10</span>          <span class="comment"># 每 10 秒检查一次</span></span><br><span class="line">      <span class="attr">failureThreshold:</span> <span class="number">3</span>        <span class="comment"># 连续 3 次失败才判定为不健康</span></span><br><span class="line">      <span class="attr">timeoutSeconds:</span> <span class="number">1</span>          <span class="comment"># 单次检查超时时间</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># TCP 检查</span></span><br><span class="line">    <span class="attr">readinessProbe:</span></span><br><span class="line">      <span class="attr">tcpSocket:</span></span><br><span class="line">        <span class="attr">port:</span> <span class="number">3306</span></span><br><span class="line">      <span class="attr">initialDelaySeconds:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 命令检查</span></span><br><span class="line">    <span class="attr">livenessProbe:</span></span><br><span class="line">      <span class="attr">exec:</span></span><br><span class="line">        <span class="attr">command:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">cat</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">/tmp/healthy</span></span><br><span class="line">      <span class="attr">initialDelaySeconds:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+<p><strong>一个常见的坑</strong>：<code>initialDelaySeconds</code> 设太小。应用还在启动，探针就开始检查，连续失败后容器被反复重启，陷入 <strong>CrashLoopBackOff</strong> 循环。经验法则：给足启动时间，宁大勿小。</p>
+<h2 id="六、Pod-的资源管理"><a href="#六、Pod-的资源管理" class="headerlink" title="六、Pod 的资源管理"></a>六、Pod 的资源管理</h2><p>每个 Pod 可以声明自己需要多少 CPU 和内存。</p>
+<h3 id="6-1-requests-和-limits"><a href="#6-1-requests-和-limits" class="headerlink" title="6.1 requests 和 limits"></a>6.1 requests 和 limits</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">resources:</span></span><br><span class="line">      <span class="attr">requests:</span>           <span class="comment"># 调度依据：节点至少要有这么多资源才把 Pod 分配过去</span></span><br><span class="line">        <span class="attr">cpu:</span> <span class="string">&quot;250m&quot;</span>       <span class="comment"># 0.25 核</span></span><br><span class="line">        <span class="attr">memory:</span> <span class="string">&quot;256Mi&quot;</span></span><br><span class="line">      <span class="attr">limits:</span>             <span class="comment"># 硬限制：容器最多能用这么多</span></span><br><span class="line">        <span class="attr">cpu:</span> <span class="string">&quot;500m&quot;</span>       <span class="comment"># 0.5 核</span></span><br><span class="line">        <span class="attr">memory:</span> <span class="string">&quot;512Mi&quot;</span></span><br></pre></td></tr></table></figure>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th></th>
+<th>requests</th>
+<th>limits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>调度参考，不是硬限制</td>
+<td>超出会被限流（throttle）</td>
+</tr>
+<tr>
+<td><strong>内存</strong></td>
+<td>调度参考</td>
+<td>超出会被 <strong>OOMKill</strong>（容器被杀掉）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>生产环境建议</strong>：两个都设置，而且 limits ≥ requests。如果只设 requests 不设 limits，一个失控的 Pod 可能吃光节点资源。</p>
+<h3 id="6-2-QoS-等级"><a href="#6-2-QoS-等级" class="headerlink" title="6.2 QoS 等级"></a>6.2 QoS 等级</h3><p>根据 requests 和 limits 的配置方式，Pod 会被分为三种 QoS 等级：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>条件</th>
+<th>被驱逐优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Guaranteed</strong></td>
+<td>所有容器都设了 requests=limits</td>
+<td>最低（最不容易被杀）</td>
+</tr>
+<tr>
+<td><strong>Burstable</strong></td>
+<td>至少一个容器设了 requests 或 limits</td>
+<td>中等</td>
+</tr>
+<tr>
+<td><strong>BestEffort</strong></td>
+<td>啥都没设</td>
+<td>最高（最先被杀）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>生产环境核心服务建议设为 <strong>Guaranteed</strong>。</p>
+<h2 id="七、Pod-的设计模式"><a href="#七、Pod-的设计模式" class="headerlink" title="七、Pod 的设计模式"></a>七、Pod 的设计模式</h2><p>不是所有 Pod 都长得一样。根据容器数量的不同，有几种常见的使用模式。</p>
+<h3 id="7-1-单容器-Pod（最常见）"><a href="#7-1-单容器-Pod（最常见）" class="headerlink" title="7.1 单容器 Pod（最常见）"></a>7.1 单容器 Pod（最常见）</h3><p>一个 Pod 里就跑一个容器，这是绝大多数场景的做法。Deployment、StatefulSet 管理的都是这种 Pod。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 90% 的场景都是这种</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br></pre></td></tr></table></figure>
+<h3 id="7-2-Sidecar-模式"><a href="#7-2-Sidecar-模式" class="headerlink" title="7.2 Sidecar 模式"></a>7.2 Sidecar 模式</h3><p>主容器 + 辅助容器，辅助容器给主容器提供附加功能。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─ Pod ──────────────────────┐</span><br><span class="line">│  App (主容器)               │</span><br><span class="line">│  + Log Collector (Sidecar)  │</span><br><span class="line">│  + Proxy (Sidecar)          │</span><br><span class="line">└─────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<p>典型场景：日志采集、代理、监控 Agent。</p>
+<h3 id="7-3-Ambassador-模式"><a href="#7-3-Ambassador-模式" class="headerlink" title="7.3 Ambassador 模式"></a>7.3 Ambassador 模式</h3><p>Ambassador 容器作为”外交官”，代理 Pod 对外的通信。</p>
+<p>典型场景：连接数据库的代理容器，主应用不需要知道数据库的地址和认证信息，只需要连 Ambassador 容器的 localhost 即可。</p>
+<h3 id="7-4-Init-Container（初始化容器）"><a href="#7-4-Init-Container（初始化容器）" class="headerlink" title="7.4 Init Container（初始化容器）"></a>7.4 Init Container（初始化容器）</h3><p>Init Container 在主容器启动<strong>之前</strong>运行，全部完成后主容器才启动。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">initContainers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">wait-for-db</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">busybox:1.36</span></span><br><span class="line">    <span class="attr">command:</span> [<span class="string">&#x27;sh&#x27;</span>, <span class="string">&#x27;-c&#x27;</span>, <span class="string">&#x27;until nslookup mysql; do echo waiting; sleep 2; done&#x27;</span>]</span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">my-app:latest</span></span><br></pre></td></tr></table></figure>
+<p>典型场景：</p>
+<ul>
+<li>等待依赖服务就绪</li>
+<li>初始化配置文件</li>
+<li>注册到服务发现</li>
+</ul>
+<h2 id="八、静态-Pod"><a href="#八、静态-Pod" class="headerlink" title="八、静态 Pod"></a>八、静态 Pod</h2><p>除了通过 API Server 创建 Pod，还有一种叫<strong>静态 Pod</strong>的方式。</p>
+<p>静态 Pod 的 YAML 直接放在节点的指定目录下（如 <code>/etc/kubernetes/manifests</code>），由 kubelet 直接管理，不经过 API Server。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># kubelet 配置文件中指定</span></span><br><span class="line">--pod-manifest-path=/etc/kubernetes/manifests</span><br></pre></td></tr></table></figure>
+<p>K8s 的控制平面组件（API Server、Scheduler、Controller Manager）本身就是以静态 Pod 的方式运行的。这也是为什么你用 <code>kubectl get pods -n kube-system</code> 能看到它们——kubelet 会自动为静态 Pod 创建一个对应的 <strong>Mirror Pod</strong> 在 API Server 中。</p>
+<h2 id="九、常用操作速查"><a href="#九、常用操作速查" class="headerlink" title="九、常用操作速查"></a>九、常用操作速查</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">kubectl apply -f pod.yaml</span><br><span class="line">kubectl run nginx --image=nginx:1.25</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Pod</span></span><br><span class="line">kubectl get pods</span><br><span class="line">kubectl get pods -o wide               <span class="comment"># 显示 IP 和所在节点</span></span><br><span class="line">kubectl get pods -w                    <span class="comment"># 实时监控状态变化</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Pod 详情</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看日志</span></span><br><span class="line">kubectl logs &lt;pod-name&gt;</span><br><span class="line">kubectl logs &lt;pod-name&gt; -f             <span class="comment"># 实时跟踪</span></span><br><span class="line">kubectl logs &lt;pod-name&gt; --<span class="built_in">tail</span>=100     <span class="comment"># 最后 100 行</span></span><br><span class="line">kubectl logs &lt;pod-name&gt; -c sidecar     <span class="comment"># 指定容器</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入容器</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -- /bin/bash</span><br><span class="line"></span><br><span class="line"><span class="comment"># 端口转发（本地调试）</span></span><br><span class="line">kubectl port-forward &lt;pod-name&gt; 8080:80</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除 Pod</span></span><br><span class="line">kubectl delete pod &lt;pod-name&gt;</span><br><span class="line">kubectl delete pod &lt;pod-name&gt; --force --grace-period=0   <span class="comment"># 强制删除</span></span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Pod 是 Kubernetes 的核心抽象，也是你日常打交道最多的资源。本文的关键知识点：</p>
+<ul>
+<li><strong>Pod 是 K8s 最小调度单元</strong>，把紧密耦合的容器打包在一起</li>
+<li><strong>每个 Pod 一个 IP</strong>，内部容器共享网络和存储</li>
+<li><strong>Pause 容器</strong>是 Pod 的”地基”，负责维持共享命名空间</li>
+<li><strong>健康检查</strong>（liveness/readiness probe）是保障服务稳定的关键</li>
+<li><strong>资源管理</strong>（requests/limits）合理设置，避免资源争抢和 OOM</li>
+<li><strong>优雅终止</strong>很重要，别让请求在关闭时被截断</li>
+</ul>
+<p>理解 Pod 是用好 K8s 的基础。后面的 Deployment、Service、Ingress 等概念都是建立在 Pod 之上的。</p>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>容器编排</tag>
+        <tag>Pod</tag>
+      </tags>
+  </entry>
 </search>
