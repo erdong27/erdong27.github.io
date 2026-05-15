@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-14T00:37:08.841Z</updated>
+  <updated>2026-05-15T00:37:45.226Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Deployment 声明式管理与滚动更新</title>
+    <link href="https://erdong27.github.io/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/"/>
+    <id>https://erdong27.github.io/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/</id>
+    <published>2026-05-15T00:35:00.000Z</published>
+    <updated>2026-05-15T00:37:45.226Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Deployment-声明式管理与滚动更新&quot;&gt;&lt;a href=&quot;#Deployment-声明式管理与滚动更新&quot; class=&quot;headerlink&quot; title=&quot;Deployment 声明式管理与滚动更新&quot;&gt;&lt;/a&gt;Deployment</summary>
+        
+      
+    
+    
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/categories/Kubernetes/"/>
+    
+    
+    <category term="云原生" scheme="https://erdong27.github.io/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/"/>
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="Deployment" scheme="https://erdong27.github.io/tags/Deployment/"/>
+    
+    <category term="滚动更新" scheme="https://erdong27.github.io/tags/%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/"/>
+    
+    <category term="声明式管理" scheme="https://erdong27.github.io/tags/%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86/"/>
+    
+  </entry>
   
   <entry>
     <title>Pod 深入理解——最小调度单元</title>
@@ -652,39 +685,6 @@
     <category term="ThreadLocal" scheme="https://erdong27.github.io/tags/ThreadLocal/"/>
     
     <category term="内存泄漏" scheme="https://erdong27.github.io/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ConcurrentHashMap 1.7 与 1.8 区别</title>
-    <link href="https://erdong27.github.io/2026/04/10/2026-04-10-ConcurrentHashMap-1.7%E4%B8%8E1.8%E5%8C%BA%E5%88%AB/"/>
-    <id>https://erdong27.github.io/2026/04/10/2026-04-10-ConcurrentHashMap-1.7%E4%B8%8E1.8%E5%8C%BA%E5%88%AB/</id>
-    <published>2026-04-10T10:00:00.000Z</published>
-    <updated>2026-04-10T03:18:44.442Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;ConcurrentHashMap-1-7-与-1-8-区别&quot;&gt;&lt;a href=&quot;#ConcurrentHashMap-1-7-与-1-8-区别&quot; class=&quot;headerlink&quot; title=&quot;ConcurrentHashMap 1.7 与 1.8</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    
-    <category term="源码分析" scheme="https://erdong27.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
-    
-    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-    <category term="ConcurrentHashMap" scheme="https://erdong27.github.io/tags/ConcurrentHashMap/"/>
-    
-    <category term="HashMap" scheme="https://erdong27.github.io/tags/HashMap/"/>
     
   </entry>
   

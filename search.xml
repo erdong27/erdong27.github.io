@@ -8422,4 +8422,172 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>Pod</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Deployment 声明式管理与滚动更新</title>
+    <url>/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/</url>
+    <content><![CDATA[<h1 id="Deployment-声明式管理与滚动更新"><a href="#Deployment-声明式管理与滚动更新" class="headerlink" title="Deployment 声明式管理与滚动更新"></a>Deployment 声明式管理与滚动更新</h1><p>前两篇聊了 K8s 的整体架构和 Pod，今天来聊真正在生产中最常用的资源——<strong>Deployment</strong>。</p>
+<p>如果说 Pod 是 K8s 里的”进程”，那 Deployment 就是 Pod 的”管家”：它帮你管数量、管版本、管更新，让你不用手动盯着每一个 Pod。</p>
+<h2 id="一、为什么需要-Deployment？"><a href="#一、为什么需要-Deployment？" class="headerlink" title="一、为什么需要 Deployment？"></a>一、为什么需要 Deployment？</h2><p>先想一个问题：<strong>如果直接用 Pod，会碰到什么问题？</strong></p>
+<h3 id="1-1-裸-Pod-的痛点"><a href="#1-1-裸-Pod-的痛点" class="headerlink" title="1.1 裸 Pod 的痛点"></a>1.1 裸 Pod 的痛点</h3><p>假设你直接用 <code>kubectl run</code> 创建了 3 个 Nginx Pod，现在你想把镜像从 <code>nginx:1.24</code> 升级到 <code>nginx:1.25</code>。怎么办？</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 裸 Pod 的升级方式——一个一个手动操作</span><br><span class="line">kubectl delete pod nginx-1</span><br><span class="line">kubectl run nginx-1 --image=nginx:1.25</span><br><span class="line">kubectl delete pod nginx-2</span><br><span class="line">kubectl run nginx-2 --image=nginx:1.25</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>麻烦不说，升级过程中服务还会<strong>中断</strong>。如果有 100 个 Pod 呢？手动操作简直是噩梦。</p>
+<p>更别提这些场景：</p>
+<ul>
+<li>Pod 挂了，谁来自动拉起来？</li>
+<li>想从 3 个副本扩容到 10 个，怎么操作？</li>
+<li>新版本有问题，怎么快速回滚？</li>
+</ul>
+<p>裸 Pod 一个都解决不了。这就是 <strong>Deployment</strong> 存在的意义。</p>
+<h3 id="1-2-Deployment-解决了什么"><a href="#1-2-Deployment-解决了什么" class="headerlink" title="1.2 Deployment 解决了什么"></a>1.2 Deployment 解决了什么</h3><p><strong>Deployment 是 K8s 里管理无状态应用的标准方式</strong>，它帮你解决：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>Deployment 的解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pod 挂了怎么办？</td>
+<td><strong>自动重建</strong>（ReplicaSet 保证副本数）</td>
+</tr>
+<tr>
+<td>怎么升级版本？</td>
+<td><strong>滚动更新</strong>（逐批次替换，服务不中断）</td>
+</tr>
+<tr>
+<td>新版本有问题？</td>
+<td><strong>一键回滚</strong>（<code>kubectl rollout undo</code>）</td>
+</tr>
+<tr>
+<td>怎么扩缩容？</td>
+<td><strong>改一个数字</strong>（<code>kubectl scale</code>）</td>
+</tr>
+<tr>
+<td>升级到一半想停？</td>
+<td><strong>暂停&#x2F;恢复</strong>（<code>rollout pause/resume</code>）</td>
+</tr>
+</tbody></table>
+<h2 id="二、声明式管理是什么？"><a href="#二、声明式管理是什么？" class="headerlink" title="二、声明式管理是什么？"></a>二、声明式管理是什么？</h2><p>K8s 的核心设计理念就是<strong>声明式（Declarative）</strong>，理解这个概念对用好 K8s 至关重要。</p>
+<h3 id="2-1-命令式-vs-声明式"><a href="#2-1-命令式-vs-声明式" class="headerlink" title="2.1 命令式 vs 声明式"></a>2.1 命令式 vs 声明式</h3><p><strong>命令式</strong>：你告诉系统”怎么做”</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 命令式：一步步告诉 K8s 要做什么</span></span><br><span class="line">kubectl create deployment nginx --image=nginx:1.25</span><br><span class="line">kubectl scale deployment nginx --replicas=5</span><br><span class="line">kubectl <span class="built_in">set</span> image deployment nginx nginx=nginx:1.26</span><br></pre></td></tr></table></figure>
+
+<p><strong>声明式</strong>你在 YAML 文件里描述”期望状态”，K8s 自己想办法达到这个状态：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 声明式：告诉 K8s &quot;最终要什么样&quot;</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">5</span>        <span class="comment"># 我想要 5 个副本</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.26</span>   <span class="comment"># 我想要这个版本的镜像</span></span><br></pre></td></tr></table></figure>
+
+<p>两者的核心区别：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>命令式</th>
+<th>声明式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>思维方式</td>
+<td>一步步操作</td>
+<td>描述目标状态</td>
+</tr>
+<tr>
+<td>可重复性</td>
+<td>差（操作步骤散落各处）</td>
+<td>强（YAML 就是完整记录）</td>
+</tr>
+<tr>
+<td>版本管理</td>
+<td>难以追踪变更</td>
+<td>YAML 可直接用 Git 管理</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>临时调试</td>
+<td>生产环境、CI&#x2F;CD</td>
+</tr>
+</tbody></table>
+<p><strong>生产环境永远用声明式</strong>，把 YAML 文件存进 Git，这就是现在流行的 <strong>GitOps</strong> 的雏形。</p>
+<h2 id="三、Deployment-的-YAML-结构"><a href="#三、Deployment-的-YAML-结构" class="headerlink" title="三、Deployment 的 YAML 结构"></a>三、Deployment 的 YAML 结构</h2><p>一个完整的 Deployment YAML 包含三层结构，初学者经常被搞晕：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Deployment</span><br><span class="line">  └── spec.replicas（副本数）</span><br><span class="line">  └── spec.selector（标签选择器，匹配 Pod）</span><br><span class="line">  └── spec.template（Pod 模板，实际上就是 Pod 的定义）</span><br><span class="line">        └── spec.containers（容器列表）</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-1-最小可用配置"><a href="#3-1-最小可用配置" class="headerlink" title="3.1 最小可用配置"></a>3.1 最小可用配置</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span>          <span class="comment"># 我要 3 个 Pod</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span>       <span class="comment"># 用这个标签找到属于我的 Pod</span></span><br><span class="line">  <span class="attr">template:</span>            <span class="comment"># Pod 模板（这才是真正定义 Pod 的地方）</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span>     <span class="comment"># Pod 的标签，必须和 selector 匹配！</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>最常见的错误</strong>：<code>template.metadata.labels</code> 和 <code>spec.selector.matchLabels</code> 不匹配。Deployment 会直接报错，Pod 也创建不出来。</p>
+<h3 id="3-2-带更新策略的完整配置"><a href="#3-2-带更新策略的完整配置" class="headerlink" title="3.2 带更新策略的完整配置"></a>3.2 带更新策略的完整配置</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line"></span><br><span class="line">  <span class="comment"># ===== 更新策略 =====</span></span><br><span class="line">  <span class="attr">strategy:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">RollingUpdate</span>        <span class="comment"># 滚动更新（默认）</span></span><br><span class="line">    <span class="attr">rollingUpdate:</span></span><br><span class="line">      <span class="attr">maxSurge:</span> <span class="number">1</span>             <span class="comment"># 最多多创建 1 个 Pod</span></span><br><span class="line">      <span class="attr">maxUnavailable:</span> <span class="number">0</span>        <span class="comment"># 最多允许 0 个 Pod 不可用（保证服务不中断）</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># ===== 健康检查（强烈建议配置）=====</span></span><br><span class="line">        <span class="attr">livenessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">            <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">10</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line">        <span class="attr">readinessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">            <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">5</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># ===== 资源管理 =====</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;100m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;200m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;256Mi&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="四、滚动更新详解"><a href="#四、滚动更新详解" class="headerlink" title="四、滚动更新详解"></a>四、滚动更新详解</h2><p><strong>滚动更新（Rolling Update）</strong> 是 Deployment 最重要的功能，也是最容易被误解的功能。</p>
+<h3 id="4-1-滚动更新过程"><a href="#4-1-滚动更新过程" class="headerlink" title="4.1 滚动更新过程"></a>4.1 滚动更新过程</h3><p>假设你的 Deployment 有 3 个副本，现在要把镜像从 <code>nginx:1.24</code> 升级到 <code>nginx:1.25</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">初始状态：</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✓ Running</span><br><span class="line"></span><br><span class="line">第1步：创建一个新版本 Pod</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✓ Running</span><br><span class="line">  Pod-4 (1.25)  等待启动...</span><br><span class="line"></span><br><span class="line">第2步：新 Pod 就绪后，删除一个旧 Pod</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-4 (1.25)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✗ Terminating</span><br><span class="line"></span><br><span class="line">第3步：再创建一个新版本 Pod</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">最终状态（3个副本都更新完毕）：</span><br><span class="line">  Pod-4 (1.25)  ✓ Running</span><br><span class="line">  Pod-5 (1.25)  ✓ Running</span><br><span class="line">  Pod-6 (1.25)  ✓ Running</span><br></pre></td></tr></table></figure>
+
+<p>整个过程服务<strong>不中断</strong>，因为始终保持足够的可用副本。</p>
+<h3 id="4-2-maxSurge-和-maxUnavailable"><a href="#4-2-maxSurge-和-maxUnavailable" class="headerlink" title="4.2 maxSurge 和 maxUnavailable"></a>4.2 maxSurge 和 maxUnavailable</h3><p>这两个参数控制滚动更新的”节奏”：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">maxSurge: 1         最多比期望副本数多几个 Pod</span><br><span class="line">maxUnavailable: 0    最多允许几个 Pod 不可用</span><br><span class="line"></span><br><span class="line">replicas: 3 时的效果：</span><br><span class="line">  更新期间始终有 ≥ 3 个 Pod 在跑（不中断服务）</span><br><span class="line">  但会短暂地有 4 个 Pod（消耗更多资源）</span><br><span class="line"></span><br><span class="line">如果想更快完成更新：</span><br><span class="line">  maxSurge: 2</span><br><span class="line">  maxUnavailable: 1</span><br><span class="line">  效果：一次更新 2 个 Pod，但可能有 1 个不可用</span><br></pre></td></tr></table></figure>
+
+<p><strong>生产环境推荐配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">strategy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">RollingUpdate</span></span><br><span class="line">  <span class="attr">rollingUpdate:</span></span><br><span class="line">    <span class="attr">maxSurge:</span> <span class="number">1</span>          <span class="comment"># 保守一点，别一下创建太多</span></span><br><span class="line">    <span class="attr">maxUnavailable:</span> <span class="number">0</span>    <span class="comment"># 保证服务不中断</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-查看更新状态"><a href="#4-3-查看更新状态" class="headerlink" title="4.3 查看更新状态"></a>4.3 查看更新状态</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看更新历史</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看某个具体版本的详情</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx --revision=2</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、回滚操作"><a href="#五、回滚操作" class="headerlink" title="五、回滚操作"></a>五、回滚操作</h2><p>新版本上线后发现 bug，需要快速回滚——这是 Deployment 的另一大杀器。</p>
+<h3 id="5-1-回滚到上一个版本"><a href="#5-1-回滚到上一个版本" class="headerlink" title="5.1 回滚到上一个版本"></a>5.1 回滚到上一个版本</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 一键回滚到上一个版本</span></span><br><span class="line">kubectl rollout undo deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 回滚到指定版本</span></span><br><span class="line">kubectl rollout undo deployment/nginx --to-revision=2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看回滚结果</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-修改更新历史保留数量"><a href="#5-2-修改更新历史保留数量" class="headerlink" title="5.2 修改更新历史保留数量"></a>5.2 修改更新历史保留数量</h3><p>默认只保留最近 10 个 ReplicaSet（对应 10 次更新历史），可以通过 <code>revisionHistoryLimit</code> 调整：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">revisionHistoryLimit:</span> <span class="number">5</span>    <span class="comment"># 只保留最近 5 个版本的历史记录</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>建议生产环境设为 5-10</strong>，太少会丢失回滚历史，太多会留下大量无用的 ReplicaSet 占用资源。</p>
+<h3 id="5-3-暂停和恢复更新"><a href="#5-3-暂停和恢复更新" class="headerlink" title="5.3 暂停和恢复更新"></a>5.3 暂停和恢复更新</h3><p>如果更新到一半发现问题，可以暂停：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 暂停更新（Pod 停在中间状态）</span></span><br><span class="line">kubectl rollout pause deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 恢复更新</span></span><br><span class="line">kubectl rollout resume deployment/nginx</span><br></pre></td></tr></table></figure>
+
+<p>这个特性在<strong>金丝雀发布（Canary Deployment）</strong> 场景下非常有用：先暂停，验证新版本 Pod 是否正常，再决定是否继续全量更新。</p>
+<h2 id="六、扩缩容"><a href="#六、扩缩容" class="headerlink" title="六、扩缩容"></a>六、扩缩容</h2><h3 id="6-1-手动扩缩容"><a href="#6-1-手动扩缩容" class="headerlink" title="6.1 手动扩缩容"></a>6.1 手动扩缩容</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 扩容到 10 个副本</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 缩容到 2 个副本</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=2</span><br></pre></td></tr></table></figure>
+
+<p><strong>底层原理</strong>：Deployment 修改 <code>spec.replicas</code>，ReplicaSet 感知到变化后，创建或删除 Pod 来达到目标数量。</p>
+<h3 id="6-2-基于-CPU-使用率的自动扩缩容（HPA）"><a href="#6-2-基于-CPU-使用率的自动扩缩容（HPA）" class="headerlink" title="6.2 基于 CPU 使用率的自动扩缩容（HPA）"></a>6.2 基于 CPU 使用率的自动扩缩容（HPA）</h3><p>手动扩缩容太麻烦，K8s 提供了 <strong>HPA（Horizontal Pod Autoscaler）</strong> 根据 CPU&#x2F;内存使用率自动调整副本数。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-hpa</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">nginx</span>          <span class="comment"># 作用于哪个 Deployment</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="number">3</span>        <span class="comment"># 最少 3 个</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="number">10</span>       <span class="comment"># 最多 10 个</span></span><br><span class="line">  <span class="attr">metrics:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">50</span>    <span class="comment"># CPU 使用率超过 50% 就扩容</span></span><br></pre></td></tr></table></figure>
+
+<p>（HPA 的详细用法会在 Day 13 深入讲解，这里先了解基本概念。）</p>
+<h2 id="七、Deployment-与-ReplicaSet-的关系"><a href="#七、Deployment-与-ReplicaSet-的关系" class="headerlink" title="七、Deployment 与 ReplicaSet 的关系"></a>七、Deployment 与 ReplicaSet 的关系</h2><p>很多人会疑惑：<strong>为什么我创建了 Deployment，却看到 ReplicaSet 也出现了？</strong></p>
+<p>这是 K8s 的设计：<strong>Deployment 不直接管理 Pod，而是通过 ReplicaSet 间接管理</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Deployment</span><br><span class="line">    │</span><br><span class="line">    ├── ReplicaSet (revision=1, image=nginx:1.24)</span><br><span class="line">    │       ├── Pod-1</span><br><span class="line">    │       ├── Pod-2</span><br><span class="line">    │       └── Pod-3</span><br><span class="line">    │</span><br><span class="line">    └── ReplicaSet (revision=2, image=nginx:1.25)   ← 更新后新建</span><br><span class="line">            ├── Pod-4</span><br><span class="line">            ├── Pod-5</span><br><span class="line">            └── Pod-6</span><br></pre></td></tr></table></figure>
+
+<p>每次更新 Deployment，K8s 会：</p>
+<ol>
+<li>创建一个新的 ReplicaSet（新版本）</li>
+<li>新 ReplicaSet 逐步增加副本</li>
+<li>旧 ReplicaSet 逐步减少副本</li>
+<li>完成后，旧 ReplicaSet 保留（用于回滚），但副本数变为 0</li>
+</ol>
+<p>所以 <code>kubectl get rs</code> 看到的 ReplicaSet 数量 &#x3D; 更新历史数量（受 <code>revisionHistoryLimit</code> 限制）。</p>
+<h2 id="八、常见故障排查"><a href="#八、常见故障排查" class="headerlink" title="八、常见故障排查"></a>八、常见故障排查</h2><h3 id="8-1-Pod-一直-Pending"><a href="#8-1-Pod-一直-Pending" class="headerlink" title="8.1 Pod 一直 Pending"></a>8.1 Pod 一直 Pending</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 事件</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见原因：</span></span><br><span class="line"><span class="comment"># 1. 资源不足（所有节点都不够 CPU/内存）</span></span><br><span class="line"><span class="comment"># 2. 节点有污点（Taint），Pod 没有对应的容忍（Toleration）</span></span><br><span class="line"><span class="comment"># 3. 没有满足条件的节点（标签选择器不匹配）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-滚动更新卡住"><a href="#8-2-滚动更新卡住" class="headerlink" title="8.2 滚动更新卡住"></a>8.2 滚动更新卡住</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/&lt;name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见原因：</span></span><br><span class="line"><span class="comment"># 1. 新 Pod 启动失败（镜像拉取失败、健康检查不通过）</span></span><br><span class="line"><span class="comment"># 2. 资源不足（无法创建新 Pod）</span></span><br><span class="line"><span class="comment"># 3. 就绪探针一直失败（新 Pod 一直没进入 Ready 状态）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-3-查看-Pod-日志"><a href="#8-3-查看-Pod-日志" class="headerlink" title="8.3 查看 Pod 日志"></a>8.3 查看 Pod 日志</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看Pod 日志（自动选一个 Pod）</span></span><br><span class="line">kubectl logs deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看指定 Pod 的日志</span></span><br><span class="line">kubectl logs &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 实时跟踪日志</span></span><br><span class="line">kubectl logs deployment/nginx -f</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-4-进入-Pod-调试"><a href="#8-4-进入-Pod-调试" class="headerlink" title="8.4 进入 Pod 调试"></a>8.4 进入 Pod 调试</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 进入 Pod 的容器</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -- /bin/bash</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果是多容器 Pod，指定容器名</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -c &lt;container-name&gt; -- /bin/bash</span><br></pre></td></tr></table></figure>
+
+<h2 id="九、常用命令速查"><a href="#九、常用命令速查" class="headerlink" title="九、常用命令速查"></a>九、常用命令速查</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建 Deployment</span></span><br><span class="line">kubectl create deployment nginx --image=nginx:1.25</span><br><span class="line">kubectl apply -f deployment.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Deployment</span></span><br><span class="line">kubectl get deployments</span><br><span class="line">kubectl describe deployment nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 更新镜像（会触发滚动更新）</span></span><br><span class="line">kubectl <span class="built_in">set</span> image deployment/nginx nginx=nginx:1.26</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或直接编辑 YAML（最推荐的方式）</span></span><br><span class="line">kubectl edit deployment nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看更新历史</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 回滚</span></span><br><span class="line">kubectl rollout undo deployment/nginx</span><br><span class="line">kubectl rollout undo deployment/nginx --to-revision=2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 扩缩容</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 暂停/恢复更新</span></span><br><span class="line">kubectl rollout pause deployment/nginx</span><br><span class="line">kubectl rollout resume deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除 Deployment（会连同 Pod 一起删除）</span></span><br><span class="line">kubectl delete deployment nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Deployment 是 K8s 里最常用的资源，理解它是生产运维的基础：</p>
+<ul>
+<li><strong>Deployment 管理 ReplicaSet，ReplicaSet 管理 Pod</strong>，三层结构各司其职</li>
+<li><strong>声明式管理</strong>是 K8s 的核心理念，用 YAML 描述期望状态而不是一步步操作</li>
+<li><strong>滚动更新</strong>让服务升级不中断，<code>maxSurge</code> 和 <code>maxUnavailable</code> 控制更新节奏</li>
+<li><strong>一键回滚</strong>拯救发布事故，<code>revisionHistoryLimit</code> 控制保留多少历史版本</li>
+<li><strong>扩缩容</strong>支持手动和自动（HPA）两种方式</li>
+</ul>
+<p>下一篇我们来聊 K8s 里另一个核心概念——<strong>Service</strong>，看看 Pod 之间到底是怎么互相找到对方的。</p>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>Deployment</tag>
+        <tag>滚动更新</tag>
+        <tag>声明式管理</tag>
+      </tags>
+  </entry>
 </search>

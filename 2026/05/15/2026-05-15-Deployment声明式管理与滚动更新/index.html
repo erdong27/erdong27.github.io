@@ -1,0 +1,386 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Deployment 声明式管理与滚动更新 | erdong</title><meta name="author" content="erdong"><meta name="copyright" content="erdong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Deployment 声明式管理与滚动更新前两篇聊了 K8s 的整体架构和 Pod，今天来聊真正在生产中最常用的资源——Deployment。 如果说 Pod 是 K8s 里的”进程”，那 Deployment 就是 Pod 的”管家”：它帮你管数量、管版本、管更新，让你不用手动盯着每一个 Pod。 一、为什么需要 Deployment？先想一个问题：如果直接用 Pod，会碰到什么问题？ 1.1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deployment 声明式管理与滚动更新">
+<meta property="og:url" content="https://erdong27.github.io/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/index.html">
+<meta property="og:site_name" content="erdong">
+<meta property="og:description" content="Deployment 声明式管理与滚动更新前两篇聊了 K8s 的整体架构和 Pod，今天来聊真正在生产中最常用的资源——Deployment。 如果说 Pod 是 K8s 里的”进程”，那 Deployment 就是 Pod 的”管家”：它帮你管数量、管版本、管更新，让你不用手动盯着每一个 Pod。 一、为什么需要 Deployment？先想一个问题：如果直接用 Pod，会碰到什么问题？ 1.1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200">
+<meta property="article:published_time" content="2026-05-15T00:35:00.000Z">
+<meta property="article:modified_time" content="2026-05-15T00:37:45.226Z">
+<meta property="article:author" content="erdong">
+<meta property="article:tag" content="云原生">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="Deployment">
+<meta property="article:tag" content="滚动更新">
+<meta property="article:tag" content="声明式管理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://erdong27.github.io/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=4.13.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script async="async" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><script>(adsbygoogle = window.adsbygoogle || []).push({
+  google_ad_client: '',
+  enable_page_level_ads: 'true'
+});</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?https://hm.baidu.com/hm.js?c214fc494c49ae12dfd201bdc3bb1b29";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  noticeOutdate: {"limitDay":500,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.11.1/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Deployment 声明式管理与滚动更新',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-05-15 08:37:45'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="erdong" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+  window.addEventListener('load',() => { preloader.endLoading() })
+
+  if (false) {
+    document.addEventListener('pjax:send', () => { preloader.initLoading() })
+    document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+  }
+})()</script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">57</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">108</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">24</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200')"><nav id="nav"><span id="blog-info"><a href="/" title="erdong"><span class="site-name">erdong</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Deployment 声明式管理与滚动更新</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-05-15T00:35:00.000Z" title="发表于 2026-05-15 08:35:00">2026-05-15</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-05-15T00:37:45.226Z" title="更新于 2026-05-15 08:37:45">2026-05-15</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Kubernetes/">Kubernetes</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Deployment 声明式管理与滚动更新"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="Deployment-声明式管理与滚动更新"><a href="#Deployment-声明式管理与滚动更新" class="headerlink" title="Deployment 声明式管理与滚动更新"></a>Deployment 声明式管理与滚动更新</h1><p>前两篇聊了 K8s 的整体架构和 Pod，今天来聊真正在生产中最常用的资源——<strong>Deployment</strong>。</p>
+<p>如果说 Pod 是 K8s 里的”进程”，那 Deployment 就是 Pod 的”管家”：它帮你管数量、管版本、管更新，让你不用手动盯着每一个 Pod。</p>
+<h2 id="一、为什么需要-Deployment？"><a href="#一、为什么需要-Deployment？" class="headerlink" title="一、为什么需要 Deployment？"></a>一、为什么需要 Deployment？</h2><p>先想一个问题：<strong>如果直接用 Pod，会碰到什么问题？</strong></p>
+<h3 id="1-1-裸-Pod-的痛点"><a href="#1-1-裸-Pod-的痛点" class="headerlink" title="1.1 裸 Pod 的痛点"></a>1.1 裸 Pod 的痛点</h3><p>假设你直接用 <code>kubectl run</code> 创建了 3 个 Nginx Pod，现在你想把镜像从 <code>nginx:1.24</code> 升级到 <code>nginx:1.25</code>。怎么办？</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 裸 Pod 的升级方式——一个一个手动操作</span><br><span class="line">kubectl delete pod nginx-1</span><br><span class="line">kubectl run nginx-1 --image=nginx:1.25</span><br><span class="line">kubectl delete pod nginx-2</span><br><span class="line">kubectl run nginx-2 --image=nginx:1.25</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>麻烦不说，升级过程中服务还会<strong>中断</strong>。如果有 100 个 Pod 呢？手动操作简直是噩梦。</p>
+<p>更别提这些场景：</p>
+<ul>
+<li>Pod 挂了，谁来自动拉起来？</li>
+<li>想从 3 个副本扩容到 10 个，怎么操作？</li>
+<li>新版本有问题，怎么快速回滚？</li>
+</ul>
+<p>裸 Pod 一个都解决不了。这就是 <strong>Deployment</strong> 存在的意义。</p>
+<h3 id="1-2-Deployment-解决了什么"><a href="#1-2-Deployment-解决了什么" class="headerlink" title="1.2 Deployment 解决了什么"></a>1.2 Deployment 解决了什么</h3><p><strong>Deployment 是 K8s 里管理无状态应用的标准方式</strong>，它帮你解决：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>Deployment 的解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pod 挂了怎么办？</td>
+<td><strong>自动重建</strong>（ReplicaSet 保证副本数）</td>
+</tr>
+<tr>
+<td>怎么升级版本？</td>
+<td><strong>滚动更新</strong>（逐批次替换，服务不中断）</td>
+</tr>
+<tr>
+<td>新版本有问题？</td>
+<td><strong>一键回滚</strong>（<code>kubectl rollout undo</code>）</td>
+</tr>
+<tr>
+<td>怎么扩缩容？</td>
+<td><strong>改一个数字</strong>（<code>kubectl scale</code>）</td>
+</tr>
+<tr>
+<td>升级到一半想停？</td>
+<td><strong>暂停&#x2F;恢复</strong>（<code>rollout pause/resume</code>）</td>
+</tr>
+</tbody></table>
+<h2 id="二、声明式管理是什么？"><a href="#二、声明式管理是什么？" class="headerlink" title="二、声明式管理是什么？"></a>二、声明式管理是什么？</h2><p>K8s 的核心设计理念就是<strong>声明式（Declarative）</strong>，理解这个概念对用好 K8s 至关重要。</p>
+<h3 id="2-1-命令式-vs-声明式"><a href="#2-1-命令式-vs-声明式" class="headerlink" title="2.1 命令式 vs 声明式"></a>2.1 命令式 vs 声明式</h3><p><strong>命令式</strong>：你告诉系统”怎么做”</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 命令式：一步步告诉 K8s 要做什么</span></span><br><span class="line">kubectl create deployment nginx --image=nginx:1.25</span><br><span class="line">kubectl scale deployment nginx --replicas=5</span><br><span class="line">kubectl <span class="built_in">set</span> image deployment nginx nginx=nginx:1.26</span><br></pre></td></tr></table></figure>
+
+<p><strong>声明式</strong>你在 YAML 文件里描述”期望状态”，K8s 自己想办法达到这个状态：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 声明式：告诉 K8s &quot;最终要什么样&quot;</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">5</span>        <span class="comment"># 我想要 5 个副本</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.26</span>   <span class="comment"># 我想要这个版本的镜像</span></span><br></pre></td></tr></table></figure>
+
+<p>两者的核心区别：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>命令式</th>
+<th>声明式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>思维方式</td>
+<td>一步步操作</td>
+<td>描述目标状态</td>
+</tr>
+<tr>
+<td>可重复性</td>
+<td>差（操作步骤散落各处）</td>
+<td>强（YAML 就是完整记录）</td>
+</tr>
+<tr>
+<td>版本管理</td>
+<td>难以追踪变更</td>
+<td>YAML 可直接用 Git 管理</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>临时调试</td>
+<td>生产环境、CI&#x2F;CD</td>
+</tr>
+</tbody></table>
+<p><strong>生产环境永远用声明式</strong>，把 YAML 文件存进 Git，这就是现在流行的 <strong>GitOps</strong> 的雏形。</p>
+<h2 id="三、Deployment-的-YAML-结构"><a href="#三、Deployment-的-YAML-结构" class="headerlink" title="三、Deployment 的 YAML 结构"></a>三、Deployment 的 YAML 结构</h2><p>一个完整的 Deployment YAML 包含三层结构，初学者经常被搞晕：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Deployment</span><br><span class="line">  └── spec.replicas（副本数）</span><br><span class="line">  └── spec.selector（标签选择器，匹配 Pod）</span><br><span class="line">  └── spec.template（Pod 模板，实际上就是 Pod 的定义）</span><br><span class="line">        └── spec.containers（容器列表）</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-1-最小可用配置"><a href="#3-1-最小可用配置" class="headerlink" title="3.1 最小可用配置"></a>3.1 最小可用配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span>          <span class="comment"># 我要 3 个 Pod</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span>       <span class="comment"># 用这个标签找到属于我的 Pod</span></span><br><span class="line">  <span class="attr">template:</span>            <span class="comment"># Pod 模板（这才是真正定义 Pod 的地方）</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span>     <span class="comment"># Pod 的标签，必须和 selector 匹配！</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>最常见的错误</strong>：<code>template.metadata.labels</code> 和 <code>spec.selector.matchLabels</code> 不匹配。Deployment 会直接报错，Pod 也创建不出来。</p>
+<h3 id="3-2-带更新策略的完整配置"><a href="#3-2-带更新策略的完整配置" class="headerlink" title="3.2 带更新策略的完整配置"></a>3.2 带更新策略的完整配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line"></span><br><span class="line">  <span class="comment"># ===== 更新策略 =====</span></span><br><span class="line">  <span class="attr">strategy:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">RollingUpdate</span>        <span class="comment"># 滚动更新（默认）</span></span><br><span class="line">    <span class="attr">rollingUpdate:</span></span><br><span class="line">      <span class="attr">maxSurge:</span> <span class="number">1</span>             <span class="comment"># 最多多创建 1 个 Pod</span></span><br><span class="line">      <span class="attr">maxUnavailable:</span> <span class="number">0</span>        <span class="comment"># 最多允许 0 个 Pod 不可用（保证服务不中断）</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># ===== 健康检查（强烈建议配置）=====</span></span><br><span class="line">        <span class="attr">livenessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">            <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">10</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line">        <span class="attr">readinessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">            <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">5</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># ===== 资源管理 =====</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;100m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;200m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;256Mi&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="四、滚动更新详解"><a href="#四、滚动更新详解" class="headerlink" title="四、滚动更新详解"></a>四、滚动更新详解</h2><p><strong>滚动更新（Rolling Update）</strong> 是 Deployment 最重要的功能，也是最容易被误解的功能。</p>
+<h3 id="4-1-滚动更新过程"><a href="#4-1-滚动更新过程" class="headerlink" title="4.1 滚动更新过程"></a>4.1 滚动更新过程</h3><p>假设你的 Deployment 有 3 个副本，现在要把镜像从 <code>nginx:1.24</code> 升级到 <code>nginx:1.25</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">初始状态：</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✓ Running</span><br><span class="line"></span><br><span class="line">第1步：创建一个新版本 Pod</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✓ Running</span><br><span class="line">  Pod-4 (1.25)  等待启动...</span><br><span class="line"></span><br><span class="line">第2步：新 Pod 就绪后，删除一个旧 Pod</span><br><span class="line">  Pod-1 (1.24)  ✓ Running</span><br><span class="line">  Pod-2 (1.24)  ✓ Running</span><br><span class="line">  Pod-4 (1.25)  ✓ Running</span><br><span class="line">  Pod-3 (1.24)  ✗ Terminating</span><br><span class="line"></span><br><span class="line">第3步：再创建一个新版本 Pod</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">最终状态（3个副本都更新完毕）：</span><br><span class="line">  Pod-4 (1.25)  ✓ Running</span><br><span class="line">  Pod-5 (1.25)  ✓ Running</span><br><span class="line">  Pod-6 (1.25)  ✓ Running</span><br></pre></td></tr></table></figure>
+
+<p>整个过程服务<strong>不中断</strong>，因为始终保持足够的可用副本。</p>
+<h3 id="4-2-maxSurge-和-maxUnavailable"><a href="#4-2-maxSurge-和-maxUnavailable" class="headerlink" title="4.2 maxSurge 和 maxUnavailable"></a>4.2 maxSurge 和 maxUnavailable</h3><p>这两个参数控制滚动更新的”节奏”：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">maxSurge: 1         最多比期望副本数多几个 Pod</span><br><span class="line">maxUnavailable: 0    最多允许几个 Pod 不可用</span><br><span class="line"></span><br><span class="line">replicas: 3 时的效果：</span><br><span class="line">  更新期间始终有 ≥ 3 个 Pod 在跑（不中断服务）</span><br><span class="line">  但会短暂地有 4 个 Pod（消耗更多资源）</span><br><span class="line"></span><br><span class="line">如果想更快完成更新：</span><br><span class="line">  maxSurge: 2</span><br><span class="line">  maxUnavailable: 1</span><br><span class="line">  效果：一次更新 2 个 Pod，但可能有 1 个不可用</span><br></pre></td></tr></table></figure>
+
+<p><strong>生产环境推荐配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">strategy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">RollingUpdate</span></span><br><span class="line">  <span class="attr">rollingUpdate:</span></span><br><span class="line">    <span class="attr">maxSurge:</span> <span class="number">1</span>          <span class="comment"># 保守一点，别一下创建太多</span></span><br><span class="line">    <span class="attr">maxUnavailable:</span> <span class="number">0</span>    <span class="comment"># 保证服务不中断</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-查看更新状态"><a href="#4-3-查看更新状态" class="headerlink" title="4.3 查看更新状态"></a>4.3 查看更新状态</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看更新历史</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看某个具体版本的详情</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx --revision=2</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、回滚操作"><a href="#五、回滚操作" class="headerlink" title="五、回滚操作"></a>五、回滚操作</h2><p>新版本上线后发现 bug，需要快速回滚——这是 Deployment 的另一大杀器。</p>
+<h3 id="5-1-回滚到上一个版本"><a href="#5-1-回滚到上一个版本" class="headerlink" title="5.1 回滚到上一个版本"></a>5.1 回滚到上一个版本</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 一键回滚到上一个版本</span></span><br><span class="line">kubectl rollout undo deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 回滚到指定版本</span></span><br><span class="line">kubectl rollout undo deployment/nginx --to-revision=2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看回滚结果</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-修改更新历史保留数量"><a href="#5-2-修改更新历史保留数量" class="headerlink" title="5.2 修改更新历史保留数量"></a>5.2 修改更新历史保留数量</h3><p>默认只保留最近 10 个 ReplicaSet（对应 10 次更新历史），可以通过 <code>revisionHistoryLimit</code> 调整：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">revisionHistoryLimit:</span> <span class="number">5</span>    <span class="comment"># 只保留最近 5 个版本的历史记录</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>建议生产环境设为 5-10</strong>，太少会丢失回滚历史，太多会留下大量无用的 ReplicaSet 占用资源。</p>
+<h3 id="5-3-暂停和恢复更新"><a href="#5-3-暂停和恢复更新" class="headerlink" title="5.3 暂停和恢复更新"></a>5.3 暂停和恢复更新</h3><p>如果更新到一半发现问题，可以暂停：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 暂停更新（Pod 停在中间状态）</span></span><br><span class="line">kubectl rollout pause deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 恢复更新</span></span><br><span class="line">kubectl rollout resume deployment/nginx</span><br></pre></td></tr></table></figure>
+
+<p>这个特性在<strong>金丝雀发布（Canary Deployment）</strong> 场景下非常有用：先暂停，验证新版本 Pod 是否正常，再决定是否继续全量更新。</p>
+<h2 id="六、扩缩容"><a href="#六、扩缩容" class="headerlink" title="六、扩缩容"></a>六、扩缩容</h2><h3 id="6-1-手动扩缩容"><a href="#6-1-手动扩缩容" class="headerlink" title="6.1 手动扩缩容"></a>6.1 手动扩缩容</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 扩容到 10 个副本</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 缩容到 2 个副本</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=2</span><br></pre></td></tr></table></figure>
+
+<p><strong>底层原理</strong>：Deployment 修改 <code>spec.replicas</code>，ReplicaSet 感知到变化后，创建或删除 Pod 来达到目标数量。</p>
+<h3 id="6-2-基于-CPU-使用率的自动扩缩容（HPA）"><a href="#6-2-基于-CPU-使用率的自动扩缩容（HPA）" class="headerlink" title="6.2 基于 CPU 使用率的自动扩缩容（HPA）"></a>6.2 基于 CPU 使用率的自动扩缩容（HPA）</h3><p>手动扩缩容太麻烦，K8s 提供了 <strong>HPA（Horizontal Pod Autoscaler）</strong> 根据 CPU&#x2F;内存使用率自动调整副本数。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-hpa</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">nginx</span>          <span class="comment"># 作用于哪个 Deployment</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="number">3</span>        <span class="comment"># 最少 3 个</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="number">10</span>       <span class="comment"># 最多 10 个</span></span><br><span class="line">  <span class="attr">metrics:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">50</span>    <span class="comment"># CPU 使用率超过 50% 就扩容</span></span><br></pre></td></tr></table></figure>
+
+<p>（HPA 的详细用法会在 Day 13 深入讲解，这里先了解基本概念。）</p>
+<h2 id="七、Deployment-与-ReplicaSet-的关系"><a href="#七、Deployment-与-ReplicaSet-的关系" class="headerlink" title="七、Deployment 与 ReplicaSet 的关系"></a>七、Deployment 与 ReplicaSet 的关系</h2><p>很多人会疑惑：<strong>为什么我创建了 Deployment，却看到 ReplicaSet 也出现了？</strong></p>
+<p>这是 K8s 的设计：<strong>Deployment 不直接管理 Pod，而是通过 ReplicaSet 间接管理</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Deployment</span><br><span class="line">    │</span><br><span class="line">    ├── ReplicaSet (revision=1, image=nginx:1.24)</span><br><span class="line">    │       ├── Pod-1</span><br><span class="line">    │       ├── Pod-2</span><br><span class="line">    │       └── Pod-3</span><br><span class="line">    │</span><br><span class="line">    └── ReplicaSet (revision=2, image=nginx:1.25)   ← 更新后新建</span><br><span class="line">            ├── Pod-4</span><br><span class="line">            ├── Pod-5</span><br><span class="line">            └── Pod-6</span><br></pre></td></tr></table></figure>
+
+<p>每次更新 Deployment，K8s 会：</p>
+<ol>
+<li>创建一个新的 ReplicaSet（新版本）</li>
+<li>新 ReplicaSet 逐步增加副本</li>
+<li>旧 ReplicaSet 逐步减少副本</li>
+<li>完成后，旧 ReplicaSet 保留（用于回滚），但副本数变为 0</li>
+</ol>
+<p>所以 <code>kubectl get rs</code> 看到的 ReplicaSet 数量 &#x3D; 更新历史数量（受 <code>revisionHistoryLimit</code> 限制）。</p>
+<h2 id="八、常见故障排查"><a href="#八、常见故障排查" class="headerlink" title="八、常见故障排查"></a>八、常见故障排查</h2><h3 id="8-1-Pod-一直-Pending"><a href="#8-1-Pod-一直-Pending" class="headerlink" title="8.1 Pod 一直 Pending"></a>8.1 Pod 一直 Pending</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 事件</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见原因：</span></span><br><span class="line"><span class="comment"># 1. 资源不足（所有节点都不够 CPU/内存）</span></span><br><span class="line"><span class="comment"># 2. 节点有污点（Taint），Pod 没有对应的容忍（Toleration）</span></span><br><span class="line"><span class="comment"># 3. 没有满足条件的节点（标签选择器不匹配）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-滚动更新卡住"><a href="#8-2-滚动更新卡住" class="headerlink" title="8.2 滚动更新卡住"></a>8.2 滚动更新卡住</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/&lt;name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见原因：</span></span><br><span class="line"><span class="comment"># 1. 新 Pod 启动失败（镜像拉取失败、健康检查不通过）</span></span><br><span class="line"><span class="comment"># 2. 资源不足（无法创建新 Pod）</span></span><br><span class="line"><span class="comment"># 3. 就绪探针一直失败（新 Pod 一直没进入 Ready 状态）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-3-查看-Pod-日志"><a href="#8-3-查看-Pod-日志" class="headerlink" title="8.3 查看 Pod 日志"></a>8.3 查看 Pod 日志</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看Pod 日志（自动选一个 Pod）</span></span><br><span class="line">kubectl logs deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看指定 Pod 的日志</span></span><br><span class="line">kubectl logs &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 实时跟踪日志</span></span><br><span class="line">kubectl logs deployment/nginx -f</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-4-进入-Pod-调试"><a href="#8-4-进入-Pod-调试" class="headerlink" title="8.4 进入 Pod 调试"></a>8.4 进入 Pod 调试</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 进入 Pod 的容器</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -- /bin/bash</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果是多容器 Pod，指定容器名</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -c &lt;container-name&gt; -- /bin/bash</span><br></pre></td></tr></table></figure>
+
+<h2 id="九、常用命令速查"><a href="#九、常用命令速查" class="headerlink" title="九、常用命令速查"></a>九、常用命令速查</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Deployment</span></span><br><span class="line">kubectl create deployment nginx --image=nginx:1.25</span><br><span class="line">kubectl apply -f deployment.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Deployment</span></span><br><span class="line">kubectl get deployments</span><br><span class="line">kubectl describe deployment nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 更新镜像（会触发滚动更新）</span></span><br><span class="line">kubectl <span class="built_in">set</span> image deployment/nginx nginx=nginx:1.26</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或直接编辑 YAML（最推荐的方式）</span></span><br><span class="line">kubectl edit deployment nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看滚动更新状态</span></span><br><span class="line">kubectl rollout status deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看更新历史</span></span><br><span class="line">kubectl rollout <span class="built_in">history</span> deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 回滚</span></span><br><span class="line">kubectl rollout undo deployment/nginx</span><br><span class="line">kubectl rollout undo deployment/nginx --to-revision=2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 扩缩容</span></span><br><span class="line">kubectl scale deployment/nginx --replicas=10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 暂停/恢复更新</span></span><br><span class="line">kubectl rollout pause deployment/nginx</span><br><span class="line">kubectl rollout resume deployment/nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除 Deployment（会连同 Pod 一起删除）</span></span><br><span class="line">kubectl delete deployment nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Deployment 是 K8s 里最常用的资源，理解它是生产运维的基础：</p>
+<ul>
+<li><strong>Deployment 管理 ReplicaSet，ReplicaSet 管理 Pod</strong>，三层结构各司其职</li>
+<li><strong>声明式管理</strong>是 K8s 的核心理念，用 YAML 描述期望状态而不是一步步操作</li>
+<li><strong>滚动更新</strong>让服务升级不中断，<code>maxSurge</code> 和 <code>maxUnavailable</code> 控制更新节奏</li>
+<li><strong>一键回滚</strong>拯救发布事故，<code>revisionHistoryLimit</code> 控制保留多少历史版本</li>
+<li><strong>扩缩容</strong>支持手动和自动（HPA）两种方式</li>
+</ul>
+<p>下一篇我们来聊 K8s 里另一个核心概念——<strong>Service</strong>，看看 Pod 之间到底是怎么互相找到对方的。</p>
+<hr>
+<p><em>封面图片来源：<a target="_blank" rel="noopener" href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/">erdong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/">https://erdong27.github.io/2026/05/15/2026-05-15-Deployment声明式管理与滚动更新/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://erdong27.github.io" target="_blank">erdong</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><a class="post-meta__tags" href="/tags/Kubernetes/">Kubernetes</a><a class="post-meta__tags" href="/tags/Deployment/">Deployment</a><a class="post-meta__tags" href="/tags/%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/">滚动更新</a><a class="post-meta__tags" href="/tags/%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86/">声明式管理</a></div><div class="post_share"><div class="social-share" data-image="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元"><img class="cover" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Pod 深入理解——最小调度单元</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建"><img class="cover" src="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=1200" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-13</div><div class="title">K8s 架构总览与环境搭建</div></div></a></div><div><a href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元"><img class="cover" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-14</div><div class="title">Pod 深入理解——最小调度单元</div></div></a></div><div><a href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结"><img class="cover" src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=630&fit=crop" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-08</div><div class="title">架构演进之路总结</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">erdong</div><div class="author-info__description">JAVA后端开发攻城狮。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">57</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">108</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">24</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/erdong27"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/erdong27" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:15755699758@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="/atom.xml" target="_blank" title="RSS链接"><i class="fa fa-rss"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">本站所有博文均是博主的学习笔记与个人理解。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Deployment-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0"><span class="toc-number">1.</span> <span class="toc-text">Deployment 声明式管理与滚动更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-Deployment%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">一、为什么需要 Deployment？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E8%A3%B8-Pod-%E7%9A%84%E7%97%9B%E7%82%B9"><span class="toc-number">1.1.1.</span> <span class="toc-text">1.1 裸 Pod 的痛点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-Deployment-%E8%A7%A3%E5%86%B3%E4%BA%86%E4%BB%80%E4%B9%88"><span class="toc-number">1.1.2.</span> <span class="toc-text">1.2 Deployment 解决了什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.2.</span> <span class="toc-text">二、声明式管理是什么？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E5%91%BD%E4%BB%A4%E5%BC%8F-vs-%E5%A3%B0%E6%98%8E%E5%BC%8F"><span class="toc-number">1.2.1.</span> <span class="toc-text">2.1 命令式 vs 声明式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81Deployment-%E7%9A%84-YAML-%E7%BB%93%E6%9E%84"><span class="toc-number">1.3.</span> <span class="toc-text">三、Deployment 的 YAML 结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E6%9C%80%E5%B0%8F%E5%8F%AF%E7%94%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.1.</span> <span class="toc-text">3.1 最小可用配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E5%B8%A6%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5%E7%9A%84%E5%AE%8C%E6%95%B4%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.2.</span> <span class="toc-text">3.2 带更新策略的完整配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.4.</span> <span class="toc-text">四、滚动更新详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E8%BF%87%E7%A8%8B"><span class="toc-number">1.4.1.</span> <span class="toc-text">4.1 滚动更新过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-maxSurge-%E5%92%8C-maxUnavailable"><span class="toc-number">1.4.2.</span> <span class="toc-text">4.2 maxSurge 和 maxUnavailable</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-%E6%9F%A5%E7%9C%8B%E6%9B%B4%E6%96%B0%E7%8A%B6%E6%80%81"><span class="toc-number">1.4.3.</span> <span class="toc-text">4.3 查看更新状态</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%9B%9E%E6%BB%9A%E6%93%8D%E4%BD%9C"><span class="toc-number">1.5.</span> <span class="toc-text">五、回滚操作</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E5%9B%9E%E6%BB%9A%E5%88%B0%E4%B8%8A%E4%B8%80%E4%B8%AA%E7%89%88%E6%9C%AC"><span class="toc-number">1.5.1.</span> <span class="toc-text">5.1 回滚到上一个版本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E4%BF%AE%E6%94%B9%E6%9B%B4%E6%96%B0%E5%8E%86%E5%8F%B2%E4%BF%9D%E7%95%99%E6%95%B0%E9%87%8F"><span class="toc-number">1.5.2.</span> <span class="toc-text">5.2 修改更新历史保留数量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E6%9A%82%E5%81%9C%E5%92%8C%E6%81%A2%E5%A4%8D%E6%9B%B4%E6%96%B0"><span class="toc-number">1.5.3.</span> <span class="toc-text">5.3 暂停和恢复更新</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E6%89%A9%E7%BC%A9%E5%AE%B9"><span class="toc-number">1.6.</span> <span class="toc-text">六、扩缩容</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E6%89%8B%E5%8A%A8%E6%89%A9%E7%BC%A9%E5%AE%B9"><span class="toc-number">1.6.1.</span> <span class="toc-text">6.1 手动扩缩容</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-%E5%9F%BA%E4%BA%8E-CPU-%E4%BD%BF%E7%94%A8%E7%8E%87%E7%9A%84%E8%87%AA%E5%8A%A8%E6%89%A9%E7%BC%A9%E5%AE%B9%EF%BC%88HPA%EF%BC%89"><span class="toc-number">1.6.2.</span> <span class="toc-text">6.2 基于 CPU 使用率的自动扩缩容（HPA）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81Deployment-%E4%B8%8E-ReplicaSet-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.7.</span> <span class="toc-text">七、Deployment 与 ReplicaSet 的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E5%B8%B8%E8%A7%81%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5"><span class="toc-number">1.8.</span> <span class="toc-text">八、常见故障排查</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-1-Pod-%E4%B8%80%E7%9B%B4-Pending"><span class="toc-number">1.8.1.</span> <span class="toc-text">8.1 Pod 一直 Pending</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-2-%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E5%8D%A1%E4%BD%8F"><span class="toc-number">1.8.2.</span> <span class="toc-text">8.2 滚动更新卡住</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-3-%E6%9F%A5%E7%9C%8B-Pod-%E6%97%A5%E5%BF%97"><span class="toc-number">1.8.3.</span> <span class="toc-text">8.3 查看 Pod 日志</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-4-%E8%BF%9B%E5%85%A5-Pod-%E8%B0%83%E8%AF%95"><span class="toc-number">1.8.4.</span> <span class="toc-text">8.4 进入 Pod 调试</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E9%80%9F%E6%9F%A5"><span class="toc-number">1.9.</span> <span class="toc-text">九、常用命令速查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.10.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新"><img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Deployment 声明式管理与滚动更新"/></a><div class="content"><a class="title" href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新">Deployment 声明式管理与滚动更新</a><time datetime="2026-05-15T00:35:00.000Z" title="发表于 2026-05-15 08:35:00">2026-05-15</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元"><img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Pod 深入理解——最小调度单元"/></a><div class="content"><a class="title" href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元">Pod 深入理解——最小调度单元</a><time datetime="2026-05-14T00:35:00.000Z" title="发表于 2026-05-14 08:35:00">2026-05-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建"><img src="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="K8s 架构总览与环境搭建"/></a><div class="content"><a class="title" href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建">K8s 架构总览与环境搭建</a><time datetime="2026-05-13T00:48:00.000Z" title="发表于 2026-05-13 08:48:00">2026-05-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&amp;h=630&amp;fit=crop" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="架构演进之路总结"/></a><div class="content"><a class="title" href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结">架构演进之路总结</a><time datetime="2026-05-08T00:35:00.000Z" title="发表于 2026-05-08 08:35:00">2026-05-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/07/2026-05-07-%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%EF%BC%88%E4%BB%A4%E7%89%8C%E6%A1%B6-%E6%BC%8F%E6%A1%B6%EF%BC%89/" title="限流算法实现（令牌桶/漏桶）"><img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&amp;h=630&amp;fit=crop" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="限流算法实现（令牌桶/漏桶）"/></a><div class="content"><a class="title" href="/2026/05/07/2026-05-07-%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0%EF%BC%88%E4%BB%A4%E7%89%8C%E6%A1%B6-%E6%BC%8F%E6%A1%B6%EF%BC%89/" title="限流算法实现（令牌桶/漏桶）">限流算法实现（令牌桶/漏桶）</a><time datetime="2026-05-07T00:35:00.000Z" title="发表于 2026-05-07 08:35:00">2026-05-07</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200')"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2026 By erdong</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">簡</button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=4.13.0"></script><script src="/js/main.js?v=4.13.0"></script><script src="/js/tw_cn.js?v=4.13.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const abcjsInit = () => {
+    const abcjsFn = () => {
+      document.querySelectorAll(".abc-music-sheet").forEach(ele => {
+        ABCJS.renderAbc(ele, ele.innerHTML, {responsive: 'resize'})
+      })
+    }
+    
+    typeof ABCJS === 'object' ? abcjsFn()
+      : getScript('https://cdn.jsdelivr.net/npm/abcjs@6.3.0/dist/abcjs-basic-min.min.js').then(abcjsFn)
+  }
+
+  window.pjax ? abcjsInit() : window.addEventListener('load', abcjsInit)
+})()</script><script>(() => {
+  const initValine = () => {
+    const valine = new Valine(Object.assign({
+      el: '#vcomment',
+      appId: 'RtAaWnTbl5sb7Uybofela0v4-gzGzoHsz',
+      appKey: 'ofjxyyACZSwMdDG3wK9Ul8oG',
+      avatar: 'monsterid',
+      serverURLs: '',
+      emojiMaps: "",
+      path: window.location.pathname,
+      visitor: false
+    }, null))
+  }
+
+  const loadValine = async () => {
+    if (typeof Valine === 'function') initValine()
+    else {
+      await getScript('https://cdn.jsdelivr.net/npm/valine@1.5.1/dist/Valine.min.js')
+      initValine()
+    }
+  }
+
+  if ('Valine' === 'Valine' || !true) {
+    if (true) btf.loadComment(document.getElementById('vcomment'),loadValine)
+    else setTimeout(loadValine, 0)
+  } else {
+    window.loadOtherComment = loadValine
+  }
+})()</script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/click-heart.min.js" async="async" mobile="false"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=4.13.0"></script></div></div></body></html>
