@@ -8815,4 +8815,187 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>服务发现</tag>
       </tags>
   </entry>
+  <entry>
+    <title>ConfigMap 与 Secret——配置与敏感信息分离</title>
+    <url>/2026/05/19/2026-05-19-ConfigMap%E4%B8%8ESecret%E2%80%94%E2%80%94%E9%85%8D%E7%BD%AE%E4%B8%8E%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E5%88%86%E7%A6%BB/</url>
+    <content><![CDATA[<h1 id="ConfigMap-与-Secret——配置与敏感信息分离"><a href="#ConfigMap-与-Secret——配置与敏感信息分离" class="headerlink" title="ConfigMap 与 Secret——配置与敏感信息分离"></a>ConfigMap 与 Secret——配置与敏感信息分离</h1><p>你写了一个 Spring Boot 应用，数据库连接串硬编码在代码里。上线要换库？改代码、重新打包、重新部署。测试环境和生产环境配置不同？两套代码分支维护到怀疑人生。</p>
+<p>这问题的解法 Kubernetes 早就想好了——<strong>把配置从代码里拔出来，交给集群统一管理</strong>。ConfigMap 管普通配置，Secret 管敏感信息，各司其职。</p>
+<h2 id="为什么要把配置外置？"><a href="#为什么要把配置外置？" class="headerlink" title="为什么要把配置外置？"></a>为什么要把配置外置？</h2><p>先看一个反面教材：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 硬编码配置的 Deployment（千万别这么干）</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">DB_HOST</span></span><br><span class="line">          <span class="attr">value:</span> <span class="string">&quot;192.168.1.100&quot;</span>      <span class="comment"># 直接写死</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">DB_PASSWORD</span></span><br><span class="line">          <span class="attr">value:</span> <span class="string">&quot;mypassword123&quot;</span>       <span class="comment"># 密码明文，更离谱</span></span><br></pre></td></tr></table></figure>
+
+<p>三个致命问题：</p>
+<ol>
+<li><strong>改配置必须重新部署</strong>——改个端口号都要走一遍 CI&#x2F;CD</li>
+<li><strong>环境差异靠代码分支管理</strong>——dev&#x2F;prod 不同配置混在代码仓库里</li>
+<li><strong>敏感信息裸奔</strong>——密码、Token 明文写在 YAML 里，推到 Git 就是事故</li>
+</ol>
+<p>ConfigMap 和 Secret 就是来解决这些问题的。</p>
+<h2 id="ConfigMap：普通配置的统一管理中心"><a href="#ConfigMap：普通配置的统一管理中心" class="headerlink" title="ConfigMap：普通配置的统一管理中心"></a>ConfigMap：普通配置的统一管理中心</h2><h3 id="本质是什么？"><a href="#本质是什么？" class="headerlink" title="本质是什么？"></a>本质是什么？</h3><p>ConfigMap 就是一个<strong>键值对存储</strong>，用来保存非敏感的配置数据。它最大的价值在于：<strong>让配置和镜像解耦</strong>。同一个镜像，挂不同的 ConfigMap，就能跑在不同环境。</p>
+<h3 id="三种创建方式"><a href="#三种创建方式" class="headerlink" title="三种创建方式"></a>三种创建方式</h3><p><strong>方式一：直接用字面量</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create configmap app-config \</span><br><span class="line">  --from-literal=DB_HOST=mysql.prod.svc \</span><br><span class="line">  --from-literal=DB_PORT=3306 \</span><br><span class="line">  --from-literal=LOG_LEVEL=info</span><br></pre></td></tr></table></figure>
+
+<p>适合少量配置项，命令行一把梭。</p>
+<p><strong>方式二：从文件创建</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create configmap app-config \</span><br><span class="line">  --from-file=application.yaml=app-config.yaml</span><br></pre></td></tr></table></figure>
+
+<p>适合整个配置文件直接丢进去，Spring Boot 的 application.yaml 就这么搞。</p>
+<p><strong>方式三：从目录批量创建</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create configmap app-config \</span><br><span class="line">  --from-file=config/</span><br></pre></td></tr></table></figure>
+
+<p>目录下每个文件变成一个 key，文件内容就是 value。</p>
+<h3 id="YAML-声明式写法"><a href="#YAML-声明式写法" class="headerlink" title="YAML 声明式写法"></a>YAML 声明式写法</h3><p>生产环境更推荐用 YAML，方便版本管理和 GitOps：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="comment"># 简单键值对</span></span><br><span class="line">  <span class="attr">DB_HOST:</span> <span class="string">&quot;mysql.prod.svc.cluster.local&quot;</span></span><br><span class="line">  <span class="attr">DB_PORT:</span> <span class="string">&quot;3306&quot;</span></span><br><span class="line">  <span class="attr">LOG_LEVEL:</span> <span class="string">&quot;info&quot;</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment"># 完整配置文件</span></span><br><span class="line">  <span class="attr">application.yaml:</span> <span class="string">|</span></span><br><span class="line"><span class="string">    server:</span></span><br><span class="line"><span class="string">      port: 8080</span></span><br><span class="line"><span class="string">    spring:</span></span><br><span class="line"><span class="string">      datasource:</span></span><br><span class="line"><span class="string">        url: jdbc:mysql://$&#123;DB_HOST&#125;:$&#123;DB_PORT&#125;/mydb</span></span><br><span class="line"><span class="string">    logging:</span></span><br><span class="line"><span class="string">      level:</span></span><br><span class="line"><span class="string">        root: $&#123;LOG_LEVEL&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：ConfigMap 的 <code>data</code> 字段里，<strong>所有值都是字符串</strong>。你写 <code>DB_PORT: 3306</code>（数字）和 <code>DB_PORT: &quot;3306&quot;</code>（字符串）效果一样，K8s 内部都会转成字符串。</p>
+<h3 id="三种消费方式"><a href="#三种消费方式" class="headerlink" title="三种消费方式"></a>三种消费方式</h3><p><strong>1. 环境变量注入</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br><span class="line">        <span class="attr">envFrom:</span>           <span class="comment"># 整个 ConfigMap 全部注入</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">configMapRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">app-config</span></span><br></pre></td></tr></table></figure>
+
+<p>或者精确选择某些 key：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">env:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">DATABASE_HOST</span>    <span class="comment"># Pod 内的环境变量名</span></span><br><span class="line">  <span class="attr">valueFrom:</span></span><br><span class="line">    <span class="attr">configMapKeyRef:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">app-config</span>   <span class="comment"># ConfigMap 名称</span></span><br><span class="line">      <span class="attr">key:</span> <span class="string">DB_HOST</span>       <span class="comment"># ConfigMap 中的 key</span></span><br></pre></td></tr></table></figure>
+
+<p><code>envFrom</code> 是”全都要”，<code>env + valueFrom</code> 是”只要指定的”。生产环境推荐后者，避免注入无用变量。</p>
+<p><strong>2. 命令行参数注入</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">containers:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">  <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br><span class="line">  <span class="attr">command:</span> [<span class="string">&quot;java&quot;</span>, <span class="string">&quot;-jar&quot;</span>]</span><br><span class="line">  <span class="attr">args:</span> [<span class="string">&quot;app.jar&quot;</span>, <span class="string">&quot;--spring.profiles.active=$(SPRING_PROFILE)&quot;</span>]</span><br><span class="line">  <span class="attr">env:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">SPRING_PROFILE</span></span><br><span class="line">    <span class="attr">valueFrom:</span></span><br><span class="line">      <span class="attr">configMapKeyRef:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line">        <span class="attr">key:</span> <span class="string">SPRING_PROFILE</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 挂载为文件（最灵活）</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">volumes:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">  <span class="attr">configMap:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line"><span class="attr">containers:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">  <span class="attr">volumeMounts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config-volume</span></span><br><span class="line">    <span class="attr">mountPath:</span> <span class="string">/config</span></span><br><span class="line">    <span class="attr">readOnly:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>挂载后，ConfigMap 的每个 key 变成 <code>/config</code> 目录下的一个文件。Spring Boot 应用可以直接把 <code>application.yaml</code> 挂到 <code>/config/application.yaml</code>，自动读取，零代码改造。</p>
+<p><strong>一个细节</strong>：挂载方式更新 ConfigMap 后，Pod 内的文件会<strong>自动同步</strong>（有约 1 分钟延迟，受 kubelet 同步周期影响）。环境变量方式则<strong>不会自动更新</strong>，必须重启 Pod 才能生效。</p>
+<h2 id="Secret：敏感信息的保险柜"><a href="#Secret：敏感信息的保险柜" class="headerlink" title="Secret：敏感信息的保险柜"></a>Secret：敏感信息的保险柜</h2><h3 id="和-ConfigMap-的区别"><a href="#和-ConfigMap-的区别" class="headerlink" title="和 ConfigMap 的区别"></a>和 ConfigMap 的区别</h3><p>很多人以为 Secret 就是”加密的 ConfigMap”，这个理解不够准确。核心区别在于：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ConfigMap</th>
+<th>Secret</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>数据大小限制</td>
+<td>1MiB</td>
+<td>1MiB</td>
+</tr>
+<tr>
+<td>存储方式</td>
+<td>明文 etcd</td>
+<td>Base64 编码 etcd</td>
+</tr>
+<tr>
+<td>访问控制</td>
+<td>无特殊限制</td>
+<td>可配置 RBAC 独立管控</td>
+</tr>
+<tr>
+<td>传输安全</td>
+<td>无特殊处理</td>
+<td>写入&#x2F;读取可走加密通道</td>
+</tr>
+<tr>
+<td>etcd 加密</td>
+<td>默认不加密</td>
+<td>可启用静态加密（encryptionConfig）</td>
+</tr>
+</tbody></table>
+<p><strong>重点</strong>：Secret 默认只是 Base64 编码，<strong>不是加密</strong>。<code>echo bXlwYXNzd29yZA== | base64 -d</code> 一秒解码。Secret 的安全价值在于：</p>
+<ol>
+<li><strong>访问控制更细</strong>——可以通过 RBAC 限制谁能读取</li>
+<li><strong>etcd 可加密存储</strong>——启用 EncryptionConfiguration 后，etcd 里存的是真正加密的密文</li>
+<li><strong>审计追踪</strong>——读取 Secret 会留下审计日志</li>
+<li><strong>与外部密钥管理集成</strong>——可以对接 Vault、AWS Secrets Manager 等</li>
+</ol>
+<h3 id="常用-Secret-类型"><a href="#常用-Secret-类型" class="headerlink" title="常用 Secret 类型"></a>常用 Secret 类型</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 通用类型，最常用</span></span><br><span class="line">kubectl create secret generic db-secret \</span><br><span class="line">  --from-literal=username=admin \</span><br><span class="line">  --from-literal=password=<span class="string">&#x27;S3cureP@ss!&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Docker 镜像拉取凭证</span></span><br><span class="line">kubectl create secret docker-registry harbor-cred \</span><br><span class="line">  --docker-server=harbor.company.com \</span><br><span class="line">  --docker-username=robot \</span><br><span class="line">  --docker-password=token123</span><br><span class="line"></span><br><span class="line"><span class="comment"># TLS 证书</span></span><br><span class="line">kubectl create secret tls tls-cert \</span><br><span class="line">  --cert=server.crt \</span><br><span class="line">  --key=server.key</span><br><span class="line"></span><br><span class="line"><span class="comment"># 基本认证</span></span><br><span class="line">kubectl create secret basic-auth nginx-auth \</span><br><span class="line">  --from-literal=username=admin \</span><br><span class="line">  --from-literal=password=<span class="string">&#x27;Nginx@2024&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="YAML-声明式写法-1"><a href="#YAML-声明式写法-1" class="headerlink" title="YAML 声明式写法"></a>YAML 声明式写法</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Secret</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Opaque</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="comment"># 值必须是 Base64 编码</span></span><br><span class="line">  <span class="attr">username:</span> <span class="string">YWRtaW4=</span>           <span class="comment"># echo -n &#x27;admin&#x27; | base64</span></span><br><span class="line">  <span class="attr">password:</span> <span class="string">UzNjdXJlUEBzcyE=</span>  <span class="comment"># echo -n &#x27;S3cureP@ss!&#x27; | base64</span></span><br></pre></td></tr></table></figure>
+
+<p>嫌手动 Base64 麻烦？用 <code>stringData</code> 字段代替 <code>data</code>，K8s 会自动帮你编码：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Secret</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Opaque</span></span><br><span class="line"><span class="attr">stringData:</span>           <span class="comment"># 直接写明文，K8s 内部自动 Base64</span></span><br><span class="line">  <span class="attr">username:</span> <span class="string">admin</span></span><br><span class="line">  <span class="attr">password:</span> <span class="string">&quot;S3cureP@ss!&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>stringData</code> 是只写的，<code>kubectl get</code> 看到的仍然是 <code>data</code> 字段的 Base64 值。</p>
+<h3 id="Secret-的消费方式"><a href="#Secret-的消费方式" class="headerlink" title="Secret 的消费方式"></a>Secret 的消费方式</h3><p>和 ConfigMap 完全一致，三种方式：环境变量、命令行参数、挂载文件。只是把 <code>configMapRef</code> &#x2F; <code>configMapKeyRef</code> 换成 <code>secretRef</code> &#x2F; <code>secretKeyRef</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">containers:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">  <span class="attr">env:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">DB_USERNAME</span></span><br><span class="line">    <span class="attr">valueFrom:</span></span><br><span class="line">      <span class="attr">secretKeyRef:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line">        <span class="attr">key:</span> <span class="string">username</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">DB_PASSWORD</span></span><br><span class="line">    <span class="attr">valueFrom:</span></span><br><span class="line">      <span class="attr">secretKeyRef:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line">        <span class="attr">key:</span> <span class="string">password</span></span><br><span class="line">  <span class="attr">volumeMounts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">    <span class="attr">mountPath:</span> <span class="string">/etc/secrets</span></span><br><span class="line">    <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line"><span class="attr">volumes:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">  <span class="attr">secret:</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">db-secret</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>安全建议</strong>：Secret 挂载为文件时，会自动以 tmpfs（内存文件系统）方式挂载，不会落盘。环境变量方式则可能被进程状态、日志等泄露，<strong>优先用挂载方式</strong>。</p>
+<h2 id="实战：一个完整的多环境配置方案"><a href="#实战：一个完整的多环境配置方案" class="headerlink" title="实战：一个完整的多环境配置方案"></a>实战：一个完整的多环境配置方案</h2><p>假设有一个 Java 应用，需要区分 dev &#x2F; prod 环境。架构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">config/</span><br><span class="line">├── dev/</span><br><span class="line">│   ├── application.yaml          # 开发环境应用配置</span><br><span class="line">│   └── db-credentials            # 开发环境数据库密码</span><br><span class="line">└── prod/</span><br><span class="line">    ├── application.yaml          # 生产环境应用配置</span><br><span class="line">    └── db-credentials            # 生产环境数据库密码</span><br></pre></td></tr></table></figure>
+
+<p><strong>开发环境 Namespace：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># dev-configmap.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">application.yaml:</span> <span class="string">|</span></span><br><span class="line"><span class="string">    server:</span></span><br><span class="line"><span class="string">      port: 8080</span></span><br><span class="line"><span class="string">    spring:</span></span><br><span class="line"><span class="string">      datasource:</span></span><br><span class="line"><span class="string">        url: jdbc:mysql://mysql-dev:3306/appdb</span></span><br><span class="line"><span class="string">        username: $&#123;DB_USER&#125;</span></span><br><span class="line"><span class="string">      logging:</span></span><br><span class="line"><span class="string">        level:</span></span><br><span class="line"><span class="string">          root: DEBUG</span></span><br><span class="line"><span class="string"></span><span class="meta">---</span></span><br><span class="line"><span class="comment"># dev-secret.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Secret</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Opaque</span></span><br><span class="line"><span class="attr">stringData:</span></span><br><span class="line">  <span class="attr">DB_USER:</span> <span class="string">dev_user</span></span><br><span class="line">  <span class="attr">DB_PASSWORD:</span> <span class="string">dev_pass_123</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>生产环境 Namespace：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># prod-configmap.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">prod</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">application.yaml:</span> <span class="string">|</span></span><br><span class="line"><span class="string">    server:</span></span><br><span class="line"><span class="string">      port: 8080</span></span><br><span class="line"><span class="string">    spring:</span></span><br><span class="line"><span class="string">      datasource:</span></span><br><span class="line"><span class="string">        url: jdbc:mysql://mysql-prod:3306/appdb</span></span><br><span class="line"><span class="string">        username: $&#123;DB_USER&#125;</span></span><br><span class="line"><span class="string">      logging:</span></span><br><span class="line"><span class="string">        level:</span></span><br><span class="line"><span class="string">          root: WARN</span></span><br><span class="line"><span class="string"></span><span class="meta">---</span></span><br><span class="line"><span class="comment"># prod-secret.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Secret</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">prod</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Opaque</span></span><br><span class="line"><span class="attr">stringData:</span></span><br><span class="line">  <span class="attr">DB_USER:</span> <span class="string">prod_admin</span></span><br><span class="line">  <span class="attr">DB_PASSWORD:</span> <span class="string">&quot;Pr0d$ecure!2024#Strong&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>通用 Deployment（两个环境共用一份）：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br><span class="line">        <span class="attr">envFrom:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">secretRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">db-secret</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/config</span></span><br><span class="line">          <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">config</span></span><br><span class="line">        <span class="attr">configMap:</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">app-config</span></span><br></pre></td></tr></table></figure>
+
+<p>同一份 Deployment YAML，因为 Namespace 不同，自动引用各自 Namespace 下的 ConfigMap 和 Secret。这就是<strong>配置外置 + Namespace 隔离</strong>的威力。</p>
+<h2 id="生产环境必须知道的坑"><a href="#生产环境必须知道的坑" class="headerlink" title="生产环境必须知道的坑"></a>生产环境必须知道的坑</h2><h3 id="1-ConfigMap-更新的延迟问题"><a href="#1-ConfigMap-更新的延迟问题" class="headerlink" title="1. ConfigMap 更新的延迟问题"></a>1. ConfigMap 更新的延迟问题</h3><p>修改 ConfigMap 后，挂载方式约 1 分钟同步，环境变量方式需要重启 Pod。如果你需要配置<strong>立即生效</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 滚动重启 Deployment，强制 Pod 重新拉取配置</span></span><br><span class="line">kubectl rollout restart deployment my-app</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-Secret-的-Base64-不是加密"><a href="#2-Secret-的-Base64-不是加密" class="headerlink" title="2. Secret 的 Base64 不是加密"></a>2. Secret 的 Base64 不是加密</h3><p>永远不要以为 Secret 存在 etcd 里就安全了。生产环境必须启用 etcd 静态加密：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># /etc/kubernetes/encryption-config.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apiserver.config.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">EncryptionConfiguration</span></span><br><span class="line"><span class="attr">resources:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">resources:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">secrets</span></span><br><span class="line">    <span class="attr">providers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">aescbc:</span></span><br><span class="line">        <span class="attr">keys:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">key1</span></span><br><span class="line">          <span class="attr">secret:</span> <span class="string">&lt;BASE64_ENCODED_SECRET&gt;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">identity:</span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后 API Server 启动参数加上 <code>--encryption-provider-config</code>。</p>
+<h3 id="3-不可变-ConfigMap-和-Secret"><a href="#3-不可变-ConfigMap-和-Secret" class="headerlink" title="3. 不可变 ConfigMap 和 Secret"></a>3. 不可变 ConfigMap 和 Secret</h3><p>K8s 1.21+ 支持设置 <code>immutable: true</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-config</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">LOG_LEVEL:</span> <span class="string">&quot;info&quot;</span></span><br><span class="line"><span class="attr">immutable:</span> <span class="literal">true</span>    <span class="comment"># 一旦创建，不可修改</span></span><br></pre></td></tr></table></figure>
+
+<p>好处：kubelet 不需要 watch 变更，<strong>降低 API Server 负载</strong>。适合那些运行后不会再变的配置（如 JVM 参数、时区设置）。想改？删了重建。</p>
+<h3 id="4-大配置项不要用环境变量"><a href="#4-大配置项不要用环境变量" class="headerlink" title="4. 大配置项不要用环境变量"></a>4. 大配置项不要用环境变量</h3><p>环境变量有长度限制（通常 128KB），且进程环境可被 <code>ps e</code> 等命令看到。大配置文件（如 JSON 规则、XML 配置）直接挂载为文件更合理。</p>
+<h3 id="5-Secret-不要提交到-Git"><a href="#5-Secret-不要提交到-Git" class="headerlink" title="5. Secret 不要提交到 Git"></a>5. Secret 不要提交到 Git</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 用 Sealed Secrets 或 External Secrets Operator 代替</span></span><br><span class="line"><span class="comment"># Sealed Secrets：加密后可安全提交到 Git</span></span><br><span class="line">kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 加密 Secret</span></span><br><span class="line">kubeseal --format yaml &lt; db-secret.yaml &gt; sealed-secret.yaml</span><br><span class="line"><span class="comment"># sealed-secret.yaml 可以安全提交到 Git，集群内自动解密</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="快速参考卡片"><a href="#快速参考卡片" class="headerlink" title="快速参考卡片"></a>快速参考卡片</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>ConfigMap</th>
+<th>Secret</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>创建（命令行）</td>
+<td><code>kubectl create configmap</code></td>
+<td><code>kubectl create secret generic</code></td>
+</tr>
+<tr>
+<td>查看内容</td>
+<td><code>kubectl get cm -o yaml</code></td>
+<td><code>kubectl get secret -o yaml</code>（Base64）</td>
+</tr>
+<tr>
+<td>解码 Secret</td>
+<td>-</td>
+<td><code>kubectl get secret db-secret -o jsonpath=&#39;&#123;.data.password&#125;&#39; | base64 -d</code></td>
+</tr>
+<tr>
+<td>更新触发</td>
+<td>挂载方式自动同步，环境变量需重启</td>
+<td>同 ConfigMap</td>
+</tr>
+<tr>
+<td>大小限制</td>
+<td>1MiB</td>
+<td>1MiB</td>
+</tr>
+<tr>
+<td>推荐消费方式</td>
+<td>挂载为文件</td>
+<td>挂载为文件</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>封面图片来源：<a href="https://unsplash.com/photos/cqevhpwxjKI">Unsplash</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>配置管理</tag>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>ConfigMap</tag>
+        <tag>Secret</tag>
+      </tags>
+  </entry>
 </search>
