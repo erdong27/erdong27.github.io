@@ -8590,4 +8590,229 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>声明式管理</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Service 服务发现与网络入口</title>
+    <url>/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/</url>
+    <content><![CDATA[<h1 id="Service-服务发现与网络入口"><a href="#Service-服务发现与网络入口" class="headerlink" title="Service 服务发现与网络入口"></a>Service 服务发现与网络入口</h1><p>前面三篇聊了架构、Pod、Deployment，今天来聊一个困扰很多人的问题：<strong>Pod 之间到底怎么互相通信？外部用户又怎么访问到 Pod 里的应用？</strong></p>
+<p>答案就是今天的主角——<strong>Service</strong>。</p>
+<h2 id="一、为什么需要-Service？"><a href="#一、为什么需要-Service？" class="headerlink" title="一、为什么需要 Service？"></a>一、为什么需要 Service？</h2><p>先回忆一下 Pod 的一个关键特性：<strong>Pod 的 IP 是临时的</strong>。</p>
+<p>每次 Deployment 更新、Pod 挂掉重建、节点故障迁移，Pod 都会拿到一个新的 IP。更狠的是，滚动更新过程中新旧 Pod 是同时存在的——你根本不知道某个时刻该连哪个 IP。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">时间线：</span><br><span class="line">  10:00  Pod-A (IP: 10.244.1.5)  ← 服务A的第一个Pod</span><br><span class="line">  10:30  Pod-B (IP: 10.244.1.8)  ← 滚动更新，A被销毁，B替代了A</span><br><span class="line">  11:00  Pod-C (IP: 10.244.2.3)  ← 节点故障，迁移到另一个节点</span><br><span class="line"></span><br><span class="line">IP 一直在变，谁来记住这些变化？</span><br></pre></td></tr></table></figure>
+
+<p>如果前端直接硬编码后端 Pod 的 IP，只要 Pod 一重建，连接就断了。在微服务架构下，几十个服务互相调用，靠手动维护 IP 表根本不现实。</p>
+<p><strong>Service 就是来解决这个问题的。</strong></p>
+<h2 id="二、Service-是什么？"><a href="#二、Service-是什么？" class="headerlink" title="二、Service 是什么？"></a>二、Service 是什么？</h2><p>用一句话概括：<strong>Service 是一组 Pod 的稳定访问入口。</strong></p>
+<p>它做三件事：</p>
+<ol>
+<li><strong>给 Pod 提供一个固定的访问地址</strong>（不再怕 Pod IP 变化）</li>
+<li><strong>自动发现后端 Pod</strong>（通过标签选择器）</li>
+<li><strong>负载均衡</strong>（流量自动分发到多个 Pod）</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">              Service</span><br><span class="line">           (固定 IP + DNS)</span><br><span class="line">               │</span><br><span class="line">        ┌──────┼──────┐</span><br><span class="line">        ▼      ▼      ▼</span><br><span class="line">     Pod-1   Pod-2   Pod-3</span><br><span class="line">   (10.x.x) (10.x.x) (10.x.x)</span><br><span class="line">     app=A   app=A   app=A</span><br><span class="line"></span><br><span class="line">Service 通过 label selector 找到所有 app=A 的 Pod，</span><br><span class="line">把流量均衡分发过去。Pod 增减了？Service 自动感知。</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、Service-的核心概念"><a href="#三、Service-的核心概念" class="headerlink" title="三、Service 的核心概念"></a>三、Service 的核心概念</h2><h3 id="3-1-标签选择器"><a href="#3-1-标签选择器" class="headerlink" title="3.1 标签选择器"></a>3.1 标签选择器</h3><p>Service 通过<strong>标签（Label）</strong>找到对应的 Pod，这和 Deployment 的 selector 是同一个机制：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Service 通过 selector 找 Pod</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span>    <span class="comment"># 匹配标签 app=my-app 的所有 Pod</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Pod 带上对应的标签</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span>    <span class="comment"># 这个标签让 Service 能找到我</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-port-和-targetPort"><a href="#3-2-port-和-targetPort" class="headerlink" title="3.2 port 和 targetPort"></a>3.2 port 和 targetPort</h3><p>初学者最容易搞混的两个字段：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">外部/集群内请求 → Service的port(80) → Pod的targetPort(8080)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>port</strong>：Service 对外暴露的端口（别人连 Service 用的端口）</li>
+<li><strong>targetPort</strong>：Pod 里容器实际监听的端口</li>
+</ul>
+<p>就像酒店前台：<code>port</code> 是前台的电话号码，<code>targetPort</code> 是帮你转接到的房间号。</p>
+<h3 id="3-3-Service-自己的-IP"><a href="#3-3-Service-自己的-IP" class="headerlink" title="3.3 Service 自己的 IP"></a>3.3 Service 自己的 IP</h3><p>每个 Service 创建后也会分配一个 <strong>Cluster IP</strong>，这个 IP 是<strong>固定的</strong>，不会随 Pod 的变化而变化。而且 K8s 的 DNS 会自动为 Service 创建一条 DNS 记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">my-service.default.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<p>所以其他 Pod 可以直接用 Service 名字访问，连 IP 都不用记：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 在集群内的任何 Pod 里，都可以直接用 Service 名访问</span></span><br><span class="line">curl http://my-app:80/hello</span><br><span class="line">curl http://my-app.default.svc.cluster.local:80/hello</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、三种-Service-类型"><a href="#四、三种-Service-类型" class="headerlink" title="四、三种 Service 类型"></a>四、三种 Service 类型</h2><p>Service 有四种类型（加上 Headless Service），今天重点讲最常用的三种。</p>
+<h3 id="4-1-ClusterIP（默认类型）"><a href="#4-1-ClusterIP（默认类型）" class="headerlink" title="4.1 ClusterIP（默认类型）"></a>4.1 ClusterIP（默认类型）</h3><p><strong>ClusterIP 是 Service 的默认类型，也是最常用的。</strong></p>
+<p>它创建一个集群内部的 IP，<strong>只有集群内部的 Pod 才能访问</strong>，外部完全访问不到。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span>    <span class="comment"># 默认值，可以不写</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span>           <span class="comment"># Service 的端口</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span>    <span class="comment"># Pod 的端口</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>适用场景</strong>：微服务之间的内部调用。比如订单服务调用库存服务，用 ClusterIP 就够了。</p>
+<h3 id="4-2-NodePort"><a href="#4-2-NodePort" class="headerlink" title="4.2 NodePort"></a>4.2 NodePort</h3><p><strong>NodePort 在 ClusterIP 的基础上，在每个节点上开放一个端口，让外部可以通过节点的 IP 访问。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">外部用户 → 节点IP:NodePort → Service(ClusterIP) → Pod:targetPort</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span>           <span class="comment"># Service 的 ClusterIP 端口</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span>    <span class="comment"># Pod 的端口</span></span><br><span class="line">    <span class="attr">nodePort:</span> <span class="number">30080</span>     <span class="comment"># 节点上开放的端口（30000-32767）</span></span><br></pre></td></tr></table></figure>
+
+<p>访问方式：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 集群内</span></span><br><span class="line">curl http://my-app:80/hello</span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群外（通过任意节点的 IP + NodePort）</span></span><br><span class="line">curl http://&lt;节点IP&gt;:30080/hello</span><br><span class="line">curl http://192.168.1.10:30080/hello</span><br><span class="line">curl http://192.168.1.11:30080/hello</span><br></pre></td></tr></table></figure>
+
+<p><strong>几个要点</strong>：</p>
+<ul>
+<li>NodePort 的范围是 <strong>30000-32767</strong>（可在 kube-apiserver 中修改）</li>
+<li>如果不指定 <code>nodePort</code>，K8s 会自动分配一个</li>
+<li>每个节点的这个端口都会开放，用哪个节点的 IP 都能访问</li>
+<li>生产环境一般<strong>不直接用 NodePort</strong>（端口不好记、暴露太多端口），而是配合 Ingress 使用</li>
+</ul>
+<h3 id="4-3-LoadBalancer"><a href="#4-3-LoadBalancer" class="headerlink" title="4.3 LoadBalancer"></a>4.3 LoadBalancer</h3><p><strong>LoadBalancer 在 NodePort 的基础上，自动创建一个外部负载均衡器（通常是云厂商提供的）。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">外部用户 → 云LB(公网IP:80) → 节点:NodePort → Service → Pod</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">LoadBalancer</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>创建后，云厂商会自动创建一个负载均衡器并分配公网 IP：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get svc my-app</span><br><span class="line"><span class="comment"># NAME     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE</span></span><br><span class="line"><span class="comment"># my-app   LoadBalancer   10.96.45.123   52.14.xxx.xxx     80:31234/TCP   1m</span></span><br></pre></td></tr></table></figure>
+
+<p>外部用户直接访问 <code>52.14.xxx.xxx:80</code> 就能打到后端 Pod。</p>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>云上环境（AWS、GCP、阿里云等），LB 由云厂商自动创建</li>
+<li>本地 Minikube&#x2F;Kind 环境一般没有 LB 控制器，EXTERNAL-IP 会一直显示 <code>&lt;pending&gt;</code></li>
+</ul>
+<h3 id="4-4-三种类型对比"><a href="#4-4-三种类型对比" class="headerlink" title="4.4 三种类型对比"></a>4.4 三种类型对比</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>ClusterIP</th>
+<th>NodePort</th>
+<th>LoadBalancer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>可访问范围</strong></td>
+<td>仅集群内部</td>
+<td>集群内 + 集群外</td>
+<td>集群内 + 集群外</td>
+</tr>
+<tr>
+<td><strong>外部访问方式</strong></td>
+<td>不能</td>
+<td>节点IP:端口</td>
+<td>公网IP:端口</td>
+</tr>
+<tr>
+<td><strong>依赖环境</strong></td>
+<td>无</td>
+<td>无</td>
+<td>需要云厂商 LB 支持</td>
+</tr>
+<tr>
+<td><strong>生产推荐</strong></td>
+<td>✅ 微服务内部通信</td>
+<td>❌ 不推荐直接使用</td>
+<td>✅ 对外暴露服务</td>
+</tr>
+<tr>
+<td><strong>成本</strong></td>
+<td>免费</td>
+<td>免费</td>
+<td>按 LB 收费</td>
+</tr>
+</tbody></table>
+<h2 id="五、Service-的流量分发机制"><a href="#五、Service-的流量分发机制" class="headerlink" title="五、Service 的流量分发机制"></a>五、Service 的流量分发机制</h2><p>Service 把请求转发到后端 Pod 时，默认使用<strong>随机轮询（Round Robin）</strong>的方式负载均衡。</p>
+<h3 id="5-1-kube-proxy-的工作模式"><a href="#5-1-kube-proxy-的工作模式" class="headerlink" title="5.1 kube-proxy 的工作模式"></a>5.1 kube-proxy 的工作模式</h3><p>Service 的底层实现依赖 <strong>kube-proxy</strong> 组件，它运行在每个节点上，负责维护网络规则。kube-proxy 有三种工作模式：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>原理</th>
+<th>性能</th>
+<th>推荐程度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>iptables</strong>（默认）</td>
+<td>用 iptables 规则转发</td>
+<td>规则多时性能下降</td>
+<td>✅ 通用推荐</td>
+</tr>
+<tr>
+<td><strong>IPVS</strong></td>
+<td>用 IPVS 内核模块转发</td>
+<td>高性能，支持多种算法</td>
+<td>✅ 大规模集群推荐</td>
+</tr>
+<tr>
+<td><strong>userspace</strong></td>
+<td>在用户空间转发</td>
+<td>性能最差，已过时</td>
+<td>❌ 不推荐</td>
+</tr>
+</tbody></table>
+<p><strong>生产环境建议使用 IPVS 模式</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 kube-proxy 使用的模式</span></span><br><span class="line">kubectl get configmap kube-proxy -n kube-system -o yaml | grep mode</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果是 iptables，可以修改为 ipvs</span></span><br><span class="line">kubectl edit configmap kube-proxy -n kube-system</span><br><span class="line"><span class="comment"># 修改 mode: &quot;ipvs&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-SessionAffinity（会话亲和性）"><a href="#5-2-SessionAffinity（会话亲和性）" class="headerlink" title="5.2 SessionAffinity（会话亲和性）"></a>5.2 SessionAffinity（会话亲和性）</h3><p>默认情况下，同一个用户的多次请求会被随机分发到不同的 Pod。如果某些场景需要同一个用户的请求固定打到同一个 Pod（比如有本地缓存），可以开启会话亲和：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">ClientIP</span>    <span class="comment"># 同一个客户端 IP 的请求打到同一个 Pod</span></span><br><span class="line">  <span class="attr">sessionAffinityConfig:</span></span><br><span class="line">    <span class="attr">clientIP:</span></span><br><span class="line">      <span class="attr">timeoutSeconds:</span> <span class="number">3600</span>      <span class="comment"># 亲和时间（秒），默认 10800 (3小时)</span></span><br></pre></td></tr></table></figure>
+
+<p>不过大多数 Web 应用已经通过 JWT、分布式 Session 等方案解决了会话问题，<strong>一般不需要开启这个配置</strong>。</p>
+<h2 id="六、Headless-Service"><a href="#六、Headless-Service" class="headerlink" title="六、Headless Service"></a>六、Headless Service</h2><p>有时候你不需要 Service 做负载均衡，只需要它帮你”找到 Pod”。这时候就用 <strong>Headless Service</strong>。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app-headless</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span>              <span class="comment"># 关键：设为 None</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>Headless Service 不分配 Cluster IP，DNS 查询时会<strong>直接返回后端所有 Pod 的 IP</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 普通 Service 的 DNS 查询结果：</span></span><br><span class="line">dig my-app.default.svc.cluster.local</span><br><span class="line"><span class="comment"># 答案：10.96.45.123（一个固定的 Cluster IP）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Headless Service 的 DNS 查询结果：</span></span><br><span class="line">dig my-app-headless.default.svc.cluster.local</span><br><span class="line"><span class="comment"># 答案：10.244.1.5, 10.244.2.3, 10.244.2.8（所有 Pod 的 IP）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li><strong>StatefulSet</strong>（有状态应用）——需要区分每个 Pod 的身份</li>
+<li><strong>自定义负载均衡</strong>——应用自己决定怎么分发请求</li>
+<li><strong>直接连接特定 Pod</strong>——比如数据库主从架构需要分别连主库和从库</li>
+</ul>
+<h2 id="七、Service-发现方式"><a href="#七、Service-发现方式" class="headerlink" title="七、Service 发现方式"></a>七、Service 发现方式</h2><p>在微服务架构下，服务 A 怎么找到服务 B？K8s 提供了两种方式。</p>
+<h3 id="7-1-环境变量（老方式）"><a href="#7-1-环境变量（老方式）" class="headerlink" title="7.1 环境变量（老方式）"></a>7.1 环境变量（老方式）</h3><p>Pod 启动时，K8s 会自动注入同 Namespace 下所有 Service 的环境变量：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 在 Pod 里查看环境变量</span></span><br><span class="line">kubectl <span class="built_in">exec</span> &lt;pod-name&gt; -- <span class="built_in">env</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出类似：</span></span><br><span class="line">MY_APP_SERVICE_HOST=10.96.45.123</span><br><span class="line">MY_APP_SERVICE_PORT=80</span><br></pre></td></tr></table></figure>
+
+<p><strong>缺点</strong>：Service 必须在 Pod 之前创建，否则环境变量注入不了。所以<strong>不推荐用这种方式</strong>。</p>
+<h3 id="7-2-DNS（推荐方式）"><a href="#7-2-DNS（推荐方式）" class="headerlink" title="7.2 DNS（推荐方式）"></a>7.2 DNS（推荐方式）</h3><p>K8s 内置了一个 DNS 服务（CoreDNS），Service 创建后自动注册 DNS 记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 同一 Namespace 下，直接用 Service 名</span></span><br><span class="line">curl http://order-service:80/api/orders</span><br><span class="line"></span><br><span class="line"><span class="comment"># 跨 Namespace 访问，需要加 Namespace</span></span><br><span class="line">curl http://order-service.production:80/api/orders</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用完整域名</span></span><br><span class="line">curl http://order-service.production.svc.cluster.local:80/api/orders</span><br></pre></td></tr></table></figure>
+
+<p><strong>绝大多数场景用 DNS 方式就够了</strong>，简单直接。</p>
+<h2 id="八、Service-与-Endpoint-的关系"><a href="#八、Service-与-Endpoint-的关系" class="headerlink" title="八、Service 与 Endpoint 的关系"></a>八、Service 与 Endpoint 的关系</h2><p>Service 本身不做任何转发，真正记录后端 Pod IP 的是 <strong>Endpoint</strong>（或 EndpointSlice）。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Service (my-app)</span><br><span class="line">    │</span><br><span class="line">    └── selector: app=my-app</span><br><span class="line">            │</span><br><span class="line">            ▼</span><br><span class="line">    Endpoint (自动生成)</span><br><span class="line">    ├── 10.244.1.5:8080</span><br><span class="line">    ├── 10.244.2.3:8080</span><br><span class="line">    └── 10.244.2.8:8080</span><br></pre></td></tr></table></figure>
+
+<p>你可以查看 Endpoint 来确认 Service 是否正确关联到了 Pod：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get endpoints my-app</span><br><span class="line"></span><br><span class="line"><span class="comment"># NAME     ENDPOINTS                                 AGE</span></span><br><span class="line"><span class="comment"># my-app   10.244.1.5:8080,10.244.2.3:8080,...       5d</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>排查技巧</strong>：如果 Service 访问不通，第一步就是看 Endpoint 是不是空的。如果 Endpoint 为空，说明 selector 没匹配到任何 Pod（标签写错了），跟网络无关。</p>
+<h2 id="九、实战：部署一个完整的服务"><a href="#九、实战：部署一个完整的服务" class="headerlink" title="九、实战：部署一个完整的服务"></a>九、实战：部署一个完整的服务</h2><p>把 Deployment + Service 组合起来，部署一个完整的服务：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 01-deployment.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;50m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;64Mi&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;100m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 02-service.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 部署</span></span><br><span class="line">kubectl apply -f 01-deployment.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">kubectl get pods -l app=nginx</span><br><span class="line">kubectl get svc nginx</span><br><span class="line">kubectl get endpoints nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在集群内测试</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- wget -qO- http://nginx/hello</span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理</span></span><br><span class="line">kubectl delete -f 01-deployment.yaml</span><br></pre></td></tr></table></figure>
+
+<h2 id="十、常见问题排查"><a href="#十、常见问题排查" class="headerlink" title="十、常见问题排查"></a>十、常见问题排查</h2><h3 id="10-1-Service-访问不通？"><a href="#10-1-Service-访问不通？" class="headerlink" title="10.1 Service 访问不通？"></a>10.1 Service 访问不通？</h3><p>按这个顺序排查：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1. Service 存在吗？</span></span><br><span class="line">kubectl get svc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Endpoint 有值吗？（最关键的一步）</span></span><br><span class="line">kubectl get endpoints &lt;service-name&gt;</span><br><span class="line"><span class="comment"># 如果是空的 → selector 没匹配到 Pod → 检查标签</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Pod 标签对吗？</span></span><br><span class="line">kubectl get pods --show-labels</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. targetPort 对吗？</span></span><br><span class="line">kubectl describe svc &lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. DNS 能解析吗？</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- nslookup &lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 6. Pod 自身是否正常？</span></span><br><span class="line">curl http://&lt;pod-ip&gt;:8080/health</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-Endpoint-一直为空？"><a href="#10-2-Endpoint-一直为空？" class="headerlink" title="10.2 Endpoint 一直为空？"></a>10.2 Endpoint 一直为空？</h3><p>最常见的原因：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">原因1：selector 标签不匹配</span><br><span class="line">  Service selector:  app: nginx</span><br><span class="line">  Pod labels:        app: nginx-web    ← 不匹配！</span><br><span class="line"></span><br><span class="line">原因2：Pod 还没启动完</span><br><span class="line">  Pod 还是 ContainerCreating 或 CrashLoopBackOff 状态</span><br><span class="line">  只有 Running 且 readinessProbe 通过的 Pod 才会加入 Endpoint</span><br><span class="line"></span><br><span class="line">原因3：跨 Namespace</span><br><span class="line">  Service 在 default Namespace，Pod 在 production Namespace</span><br><span class="line">  Service 只能匹配同一 Namespace 下的 Pod</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-3-端口映射搞混了？"><a href="#10-3-端口映射搞混了？" class="headerlink" title="10.3 端口映射搞混了？"></a>10.3 端口映射搞混了？</h3><p>记住这个公式：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">请求进来 → Service.port → (转发到) → Pod.containerPort</span><br><span class="line">                                           (通过) targetPort 指定</span><br></pre></td></tr></table></figure>
+
+<p><code>targetPort</code> 可以是一个数字，也可以是 Pod 里容器的端口名：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 方式1：直接写端口号</span></span><br><span class="line"><span class="attr">ports:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">targetPort:</span> <span class="number">8080</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 方式2：写容器定义的端口名（推荐，更清晰）</span></span><br><span class="line"><span class="attr">ports:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">targetPort:</span> <span class="string">http</span>   <span class="comment"># 对应 Pod 里 container 的 ports[].name: http</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常用命令速查"><a href="#常用命令速查" class="headerlink" title="常用命令速查"></a>常用命令速查</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建 Service</span></span><br><span class="line">kubectl expose deployment nginx --port=80 --target-port=80</span><br><span class="line">kubectl expose deployment nginx --port=80 --target-port=80 --<span class="built_in">type</span>=NodePort</span><br><span class="line">kubectl apply -f service.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Service</span></span><br><span class="line">kubectl get svc</span><br><span class="line">kubectl describe svc nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Endpoint</span></span><br><span class="line">kubectl get endpoints nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试 Service 可达性</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- wget -qO- http://nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除 Service</span></span><br><span class="line">kubectl delete svc nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Service 是 K8s 网络模型中最核心的抽象，把动态变化的 Pod 包装成一个稳定的访问端点：</p>
+<ul>
+<li><strong>ClusterIP</strong> 是默认类型，适合集群内部微服务通信</li>
+<li><strong>NodePort</strong> 在每个节点开放端口，适合简单的外部访问</li>
+<li><strong>LoadBalancer</strong> 适合云上环境，自动创建外部负载均衡器</li>
+<li><strong>Headless Service</strong> 不做负载均衡，直接暴露 Pod IP，适合有状态应用</li>
+<li><strong>DNS 发现</strong>是最推荐的服务发现方式，简单可靠</li>
+<li>排查 Service 问题，<strong>第一步永远先看 Endpoint</strong></li>
+</ul>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>Service</tag>
+        <tag>ClusterIP</tag>
+        <tag>NodePort</tag>
+        <tag>LoadBalancer</tag>
+        <tag>服务发现</tag>
+      </tags>
+  </entry>
 </search>

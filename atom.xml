@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-15T00:37:45.226Z</updated>
+  <updated>2026-05-19T00:35:22.416Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,43 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Service 服务发现与网络入口</title>
+    <link href="https://erdong27.github.io/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/"/>
+    <id>https://erdong27.github.io/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/</id>
+    <published>2026-05-19T00:33:00.000Z</published>
+    <updated>2026-05-19T00:35:22.416Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;Service-服务发现与网络入口&quot;&gt;&lt;a href=&quot;#Service-服务发现与网络入口&quot; class=&quot;headerlink&quot; title=&quot;Service 服务发现与网络入口&quot;&gt;&lt;/a&gt;Service</summary>
+        
+      
+    
+    
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/categories/Kubernetes/"/>
+    
+    
+    <category term="云原生" scheme="https://erdong27.github.io/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/"/>
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="Service" scheme="https://erdong27.github.io/tags/Service/"/>
+    
+    <category term="ClusterIP" scheme="https://erdong27.github.io/tags/ClusterIP/"/>
+    
+    <category term="NodePort" scheme="https://erdong27.github.io/tags/NodePort/"/>
+    
+    <category term="LoadBalancer" scheme="https://erdong27.github.io/tags/LoadBalancer/"/>
+    
+    <category term="服务发现" scheme="https://erdong27.github.io/tags/%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/"/>
+    
+  </entry>
   
   <entry>
     <title>Deployment 声明式管理与滚动更新</title>
@@ -652,39 +689,6 @@
     <category term="并发编程" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
     
     <category term="线程池" scheme="https://erdong27.github.io/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ThreadLocal 内存泄漏问题与解决方案</title>
-    <link href="https://erdong27.github.io/2026/04/13/2026-04-13-ThreadLocal%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/"/>
-    <id>https://erdong27.github.io/2026/04/13/2026-04-13-ThreadLocal%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/</id>
-    <published>2026-04-13T10:00:00.000Z</published>
-    <updated>2026-04-13T00:38:43.757Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h1 id=&quot;ThreadLocal-内存泄漏问题与解决方案&quot;&gt;&lt;a href=&quot;#ThreadLocal-内存泄漏问题与解决方案&quot; class=&quot;headerlink&quot; title=&quot;ThreadLocal 内存泄漏问题与解决方案&quot;&gt;&lt;/a&gt;ThreadLocal</summary>
-        
-      
-    
-    
-    
-    <category term="Java" scheme="https://erdong27.github.io/categories/Java/"/>
-    
-    <category term="并发编程" scheme="https://erdong27.github.io/categories/Java/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    
-    <category term="并发" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
-    
-    <category term="ThreadLocal" scheme="https://erdong27.github.io/tags/ThreadLocal/"/>
-    
-    <category term="内存泄漏" scheme="https://erdong27.github.io/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"/>
     
   </entry>
   

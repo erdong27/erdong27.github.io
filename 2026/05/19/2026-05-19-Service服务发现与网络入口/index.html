@@ -1,0 +1,443 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Service 服务发现与网络入口 | erdong</title><meta name="author" content="erdong"><meta name="copyright" content="erdong"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Service 服务发现与网络入口前面三篇聊了架构、Pod、Deployment，今天来聊一个困扰很多人的问题：Pod 之间到底怎么互相通信？外部用户又怎么访问到 Pod 里的应用？ 答案就是今天的主角——Service。 一、为什么需要 Service？先回忆一下 Pod 的一个关键特性：Pod 的 IP 是临时的。 每次 Deployment 更新、Pod 挂掉重建、节点故障迁移，Pod 都会">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Service 服务发现与网络入口">
+<meta property="og:url" content="https://erdong27.github.io/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/index.html">
+<meta property="og:site_name" content="erdong">
+<meta property="og:description" content="Service 服务发现与网络入口前面三篇聊了架构、Pod、Deployment，今天来聊一个困扰很多人的问题：Pod 之间到底怎么互相通信？外部用户又怎么访问到 Pod 里的应用？ 答案就是今天的主角——Service。 一、为什么需要 Service？先回忆一下 Pod 的一个关键特性：Pod 的 IP 是临时的。 每次 Deployment 更新、Pod 挂掉重建、节点故障迁移，Pod 都会">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200">
+<meta property="article:published_time" content="2026-05-19T00:33:00.000Z">
+<meta property="article:modified_time" content="2026-05-19T00:35:22.416Z">
+<meta property="article:author" content="erdong">
+<meta property="article:tag" content="云原生">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="Service">
+<meta property="article:tag" content="ClusterIP">
+<meta property="article:tag" content="NodePort">
+<meta property="article:tag" content="LoadBalancer">
+<meta property="article:tag" content="服务发现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://erdong27.github.io/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=4.13.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script async="async" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><script>(adsbygoogle = window.adsbygoogle || []).push({
+  google_ad_client: '',
+  enable_page_level_ads: 'true'
+});</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?https://hm.baidu.com/hm.js?c214fc494c49ae12dfd201bdc3bb1b29";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  noticeOutdate: {"limitDay":500,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.11.1/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Service 服务发现与网络入口',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-05-19 08:35:22'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="erdong" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+  window.addEventListener('load',() => { preloader.endLoading() })
+
+  if (false) {
+    document.addEventListener('pjax:send', () => { preloader.initLoading() })
+    document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+  }
+})()</script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">58</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">113</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">24</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200')"><nav id="nav"><span id="blog-info"><a href="/" title="erdong"><span class="site-name">erdong</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group hide" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Service 服务发现与网络入口</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-05-19T00:33:00.000Z" title="发表于 2026-05-19 08:33:00">2026-05-19</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-05-19T00:35:22.416Z" title="更新于 2026-05-19 08:35:22">2026-05-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Kubernetes/">Kubernetes</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>11分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Service 服务发现与网络入口"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="Service-服务发现与网络入口"><a href="#Service-服务发现与网络入口" class="headerlink" title="Service 服务发现与网络入口"></a>Service 服务发现与网络入口</h1><p>前面三篇聊了架构、Pod、Deployment，今天来聊一个困扰很多人的问题：<strong>Pod 之间到底怎么互相通信？外部用户又怎么访问到 Pod 里的应用？</strong></p>
+<p>答案就是今天的主角——<strong>Service</strong>。</p>
+<h2 id="一、为什么需要-Service？"><a href="#一、为什么需要-Service？" class="headerlink" title="一、为什么需要 Service？"></a>一、为什么需要 Service？</h2><p>先回忆一下 Pod 的一个关键特性：<strong>Pod 的 IP 是临时的</strong>。</p>
+<p>每次 Deployment 更新、Pod 挂掉重建、节点故障迁移，Pod 都会拿到一个新的 IP。更狠的是，滚动更新过程中新旧 Pod 是同时存在的——你根本不知道某个时刻该连哪个 IP。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">时间线：</span><br><span class="line">  10:00  Pod-A (IP: 10.244.1.5)  ← 服务A的第一个Pod</span><br><span class="line">  10:30  Pod-B (IP: 10.244.1.8)  ← 滚动更新，A被销毁，B替代了A</span><br><span class="line">  11:00  Pod-C (IP: 10.244.2.3)  ← 节点故障，迁移到另一个节点</span><br><span class="line"></span><br><span class="line">IP 一直在变，谁来记住这些变化？</span><br></pre></td></tr></table></figure>
+
+<p>如果前端直接硬编码后端 Pod 的 IP，只要 Pod 一重建，连接就断了。在微服务架构下，几十个服务互相调用，靠手动维护 IP 表根本不现实。</p>
+<p><strong>Service 就是来解决这个问题的。</strong></p>
+<h2 id="二、Service-是什么？"><a href="#二、Service-是什么？" class="headerlink" title="二、Service 是什么？"></a>二、Service 是什么？</h2><p>用一句话概括：<strong>Service 是一组 Pod 的稳定访问入口。</strong></p>
+<p>它做三件事：</p>
+<ol>
+<li><strong>给 Pod 提供一个固定的访问地址</strong>（不再怕 Pod IP 变化）</li>
+<li><strong>自动发现后端 Pod</strong>（通过标签选择器）</li>
+<li><strong>负载均衡</strong>（流量自动分发到多个 Pod）</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">              Service</span><br><span class="line">           (固定 IP + DNS)</span><br><span class="line">               │</span><br><span class="line">        ┌──────┼──────┐</span><br><span class="line">        ▼      ▼      ▼</span><br><span class="line">     Pod-1   Pod-2   Pod-3</span><br><span class="line">   (10.x.x) (10.x.x) (10.x.x)</span><br><span class="line">     app=A   app=A   app=A</span><br><span class="line"></span><br><span class="line">Service 通过 label selector 找到所有 app=A 的 Pod，</span><br><span class="line">把流量均衡分发过去。Pod 增减了？Service 自动感知。</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、Service-的核心概念"><a href="#三、Service-的核心概念" class="headerlink" title="三、Service 的核心概念"></a>三、Service 的核心概念</h2><h3 id="3-1-标签选择器"><a href="#3-1-标签选择器" class="headerlink" title="3.1 标签选择器"></a>3.1 标签选择器</h3><p>Service 通过<strong>标签（Label）</strong>找到对应的 Pod，这和 Deployment 的 selector 是同一个机制：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Service 通过 selector 找 Pod</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span>    <span class="comment"># 匹配标签 app=my-app 的所有 Pod</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Pod 带上对应的标签</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span>    <span class="comment"># 这个标签让 Service 能找到我</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">my-app:v1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-port-和-targetPort"><a href="#3-2-port-和-targetPort" class="headerlink" title="3.2 port 和 targetPort"></a>3.2 port 和 targetPort</h3><p>初学者最容易搞混的两个字段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">外部/集群内请求 → Service的port(80) → Pod的targetPort(8080)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>port</strong>：Service 对外暴露的端口（别人连 Service 用的端口）</li>
+<li><strong>targetPort</strong>：Pod 里容器实际监听的端口</li>
+</ul>
+<p>就像酒店前台：<code>port</code> 是前台的电话号码，<code>targetPort</code> 是帮你转接到的房间号。</p>
+<h3 id="3-3-Service-自己的-IP"><a href="#3-3-Service-自己的-IP" class="headerlink" title="3.3 Service 自己的 IP"></a>3.3 Service 自己的 IP</h3><p>每个 Service 创建后也会分配一个 <strong>Cluster IP</strong>，这个 IP 是<strong>固定的</strong>，不会随 Pod 的变化而变化。而且 K8s 的 DNS 会自动为 Service 创建一条 DNS 记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">my-service.default.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<p>所以其他 Pod 可以直接用 Service 名字访问，连 IP 都不用记：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在集群内的任何 Pod 里，都可以直接用 Service 名访问</span></span><br><span class="line">curl http://my-app:80/hello</span><br><span class="line">curl http://my-app.default.svc.cluster.local:80/hello</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、三种-Service-类型"><a href="#四、三种-Service-类型" class="headerlink" title="四、三种 Service 类型"></a>四、三种 Service 类型</h2><p>Service 有四种类型（加上 Headless Service），今天重点讲最常用的三种。</p>
+<h3 id="4-1-ClusterIP（默认类型）"><a href="#4-1-ClusterIP（默认类型）" class="headerlink" title="4.1 ClusterIP（默认类型）"></a>4.1 ClusterIP（默认类型）</h3><p><strong>ClusterIP 是 Service 的默认类型，也是最常用的。</strong></p>
+<p>它创建一个集群内部的 IP，<strong>只有集群内部的 Pod 才能访问</strong>，外部完全访问不到。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span>    <span class="comment"># 默认值，可以不写</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span>           <span class="comment"># Service 的端口</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span>    <span class="comment"># Pod 的端口</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>适用场景</strong>：微服务之间的内部调用。比如订单服务调用库存服务，用 ClusterIP 就够了。</p>
+<h3 id="4-2-NodePort"><a href="#4-2-NodePort" class="headerlink" title="4.2 NodePort"></a>4.2 NodePort</h3><p><strong>NodePort 在 ClusterIP 的基础上，在每个节点上开放一个端口，让外部可以通过节点的 IP 访问。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">外部用户 → 节点IP:NodePort → Service(ClusterIP) → Pod:targetPort</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span>           <span class="comment"># Service 的 ClusterIP 端口</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span>    <span class="comment"># Pod 的端口</span></span><br><span class="line">    <span class="attr">nodePort:</span> <span class="number">30080</span>     <span class="comment"># 节点上开放的端口（30000-32767）</span></span><br></pre></td></tr></table></figure>
+
+<p>访问方式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 集群内</span></span><br><span class="line">curl http://my-app:80/hello</span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群外（通过任意节点的 IP + NodePort）</span></span><br><span class="line">curl http://&lt;节点IP&gt;:30080/hello</span><br><span class="line">curl http://192.168.1.10:30080/hello</span><br><span class="line">curl http://192.168.1.11:30080/hello</span><br></pre></td></tr></table></figure>
+
+<p><strong>几个要点</strong>：</p>
+<ul>
+<li>NodePort 的范围是 <strong>30000-32767</strong>（可在 kube-apiserver 中修改）</li>
+<li>如果不指定 <code>nodePort</code>，K8s 会自动分配一个</li>
+<li>每个节点的这个端口都会开放，用哪个节点的 IP 都能访问</li>
+<li>生产环境一般<strong>不直接用 NodePort</strong>（端口不好记、暴露太多端口），而是配合 Ingress 使用</li>
+</ul>
+<h3 id="4-3-LoadBalancer"><a href="#4-3-LoadBalancer" class="headerlink" title="4.3 LoadBalancer"></a>4.3 LoadBalancer</h3><p><strong>LoadBalancer 在 NodePort 的基础上，自动创建一个外部负载均衡器（通常是云厂商提供的）。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">外部用户 → 云LB(公网IP:80) → 节点:NodePort → Service → Pod</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">LoadBalancer</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>创建后，云厂商会自动创建一个负载均衡器并分配公网 IP：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc my-app</span><br><span class="line"><span class="comment"># NAME     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE</span></span><br><span class="line"><span class="comment"># my-app   LoadBalancer   10.96.45.123   52.14.xxx.xxx     80:31234/TCP   1m</span></span><br></pre></td></tr></table></figure>
+
+<p>外部用户直接访问 <code>52.14.xxx.xxx:80</code> 就能打到后端 Pod。</p>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>云上环境（AWS、GCP、阿里云等），LB 由云厂商自动创建</li>
+<li>本地 Minikube&#x2F;Kind 环境一般没有 LB 控制器，EXTERNAL-IP 会一直显示 <code>&lt;pending&gt;</code></li>
+</ul>
+<h3 id="4-4-三种类型对比"><a href="#4-4-三种类型对比" class="headerlink" title="4.4 三种类型对比"></a>4.4 三种类型对比</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>ClusterIP</th>
+<th>NodePort</th>
+<th>LoadBalancer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>可访问范围</strong></td>
+<td>仅集群内部</td>
+<td>集群内 + 集群外</td>
+<td>集群内 + 集群外</td>
+</tr>
+<tr>
+<td><strong>外部访问方式</strong></td>
+<td>不能</td>
+<td>节点IP:端口</td>
+<td>公网IP:端口</td>
+</tr>
+<tr>
+<td><strong>依赖环境</strong></td>
+<td>无</td>
+<td>无</td>
+<td>需要云厂商 LB 支持</td>
+</tr>
+<tr>
+<td><strong>生产推荐</strong></td>
+<td>✅ 微服务内部通信</td>
+<td>❌ 不推荐直接使用</td>
+<td>✅ 对外暴露服务</td>
+</tr>
+<tr>
+<td><strong>成本</strong></td>
+<td>免费</td>
+<td>免费</td>
+<td>按 LB 收费</td>
+</tr>
+</tbody></table>
+<h2 id="五、Service-的流量分发机制"><a href="#五、Service-的流量分发机制" class="headerlink" title="五、Service 的流量分发机制"></a>五、Service 的流量分发机制</h2><p>Service 把请求转发到后端 Pod 时，默认使用<strong>随机轮询（Round Robin）</strong>的方式负载均衡。</p>
+<h3 id="5-1-kube-proxy-的工作模式"><a href="#5-1-kube-proxy-的工作模式" class="headerlink" title="5.1 kube-proxy 的工作模式"></a>5.1 kube-proxy 的工作模式</h3><p>Service 的底层实现依赖 <strong>kube-proxy</strong> 组件，它运行在每个节点上，负责维护网络规则。kube-proxy 有三种工作模式：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>原理</th>
+<th>性能</th>
+<th>推荐程度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>iptables</strong>（默认）</td>
+<td>用 iptables 规则转发</td>
+<td>规则多时性能下降</td>
+<td>✅ 通用推荐</td>
+</tr>
+<tr>
+<td><strong>IPVS</strong></td>
+<td>用 IPVS 内核模块转发</td>
+<td>高性能，支持多种算法</td>
+<td>✅ 大规模集群推荐</td>
+</tr>
+<tr>
+<td><strong>userspace</strong></td>
+<td>在用户空间转发</td>
+<td>性能最差，已过时</td>
+<td>❌ 不推荐</td>
+</tr>
+</tbody></table>
+<p><strong>生产环境建议使用 IPVS 模式</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 kube-proxy 使用的模式</span></span><br><span class="line">kubectl get configmap kube-proxy -n kube-system -o yaml | grep mode</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果是 iptables，可以修改为 ipvs</span></span><br><span class="line">kubectl edit configmap kube-proxy -n kube-system</span><br><span class="line"><span class="comment"># 修改 mode: &quot;ipvs&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-SessionAffinity（会话亲和性）"><a href="#5-2-SessionAffinity（会话亲和性）" class="headerlink" title="5.2 SessionAffinity（会话亲和性）"></a>5.2 SessionAffinity（会话亲和性）</h3><p>默认情况下，同一个用户的多次请求会被随机分发到不同的 Pod。如果某些场景需要同一个用户的请求固定打到同一个 Pod（比如有本地缓存），可以开启会话亲和：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">ClientIP</span>    <span class="comment"># 同一个客户端 IP 的请求打到同一个 Pod</span></span><br><span class="line">  <span class="attr">sessionAffinityConfig:</span></span><br><span class="line">    <span class="attr">clientIP:</span></span><br><span class="line">      <span class="attr">timeoutSeconds:</span> <span class="number">3600</span>      <span class="comment"># 亲和时间（秒），默认 10800 (3小时)</span></span><br></pre></td></tr></table></figure>
+
+<p>不过大多数 Web 应用已经通过 JWT、分布式 Session 等方案解决了会话问题，<strong>一般不需要开启这个配置</strong>。</p>
+<h2 id="六、Headless-Service"><a href="#六、Headless-Service" class="headerlink" title="六、Headless Service"></a>六、Headless Service</h2><p>有时候你不需要 Service 做负载均衡，只需要它帮你”找到 Pod”。这时候就用 <strong>Headless Service</strong>。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-app-headless</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span>              <span class="comment"># 关键：设为 None</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>Headless Service 不分配 Cluster IP，DNS 查询时会<strong>直接返回后端所有 Pod 的 IP</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 普通 Service 的 DNS 查询结果：</span></span><br><span class="line">dig my-app.default.svc.cluster.local</span><br><span class="line"><span class="comment"># 答案：10.96.45.123（一个固定的 Cluster IP）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Headless Service 的 DNS 查询结果：</span></span><br><span class="line">dig my-app-headless.default.svc.cluster.local</span><br><span class="line"><span class="comment"># 答案：10.244.1.5, 10.244.2.3, 10.244.2.8（所有 Pod 的 IP）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li><strong>StatefulSet</strong>（有状态应用）——需要区分每个 Pod 的身份</li>
+<li><strong>自定义负载均衡</strong>——应用自己决定怎么分发请求</li>
+<li><strong>直接连接特定 Pod</strong>——比如数据库主从架构需要分别连主库和从库</li>
+</ul>
+<h2 id="七、Service-发现方式"><a href="#七、Service-发现方式" class="headerlink" title="七、Service 发现方式"></a>七、Service 发现方式</h2><p>在微服务架构下，服务 A 怎么找到服务 B？K8s 提供了两种方式。</p>
+<h3 id="7-1-环境变量（老方式）"><a href="#7-1-环境变量（老方式）" class="headerlink" title="7.1 环境变量（老方式）"></a>7.1 环境变量（老方式）</h3><p>Pod 启动时，K8s 会自动注入同 Namespace 下所有 Service 的环境变量：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 Pod 里查看环境变量</span></span><br><span class="line">kubectl <span class="built_in">exec</span> &lt;pod-name&gt; -- <span class="built_in">env</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出类似：</span></span><br><span class="line">MY_APP_SERVICE_HOST=10.96.45.123</span><br><span class="line">MY_APP_SERVICE_PORT=80</span><br></pre></td></tr></table></figure>
+
+<p><strong>缺点</strong>：Service 必须在 Pod 之前创建，否则环境变量注入不了。所以<strong>不推荐用这种方式</strong>。</p>
+<h3 id="7-2-DNS（推荐方式）"><a href="#7-2-DNS（推荐方式）" class="headerlink" title="7.2 DNS（推荐方式）"></a>7.2 DNS（推荐方式）</h3><p>K8s 内置了一个 DNS 服务（CoreDNS），Service 创建后自动注册 DNS 记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 同一 Namespace 下，直接用 Service 名</span></span><br><span class="line">curl http://order-service:80/api/orders</span><br><span class="line"></span><br><span class="line"><span class="comment"># 跨 Namespace 访问，需要加 Namespace</span></span><br><span class="line">curl http://order-service.production:80/api/orders</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用完整域名</span></span><br><span class="line">curl http://order-service.production.svc.cluster.local:80/api/orders</span><br></pre></td></tr></table></figure>
+
+<p><strong>绝大多数场景用 DNS 方式就够了</strong>，简单直接。</p>
+<h2 id="八、Service-与-Endpoint-的关系"><a href="#八、Service-与-Endpoint-的关系" class="headerlink" title="八、Service 与 Endpoint 的关系"></a>八、Service 与 Endpoint 的关系</h2><p>Service 本身不做任何转发，真正记录后端 Pod IP 的是 <strong>Endpoint</strong>（或 EndpointSlice）。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Service (my-app)</span><br><span class="line">    │</span><br><span class="line">    └── selector: app=my-app</span><br><span class="line">            │</span><br><span class="line">            ▼</span><br><span class="line">    Endpoint (自动生成)</span><br><span class="line">    ├── 10.244.1.5:8080</span><br><span class="line">    ├── 10.244.2.3:8080</span><br><span class="line">    └── 10.244.2.8:8080</span><br></pre></td></tr></table></figure>
+
+<p>你可以查看 Endpoint 来确认 Service 是否正确关联到了 Pod：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl get endpoints my-app</span><br><span class="line"></span><br><span class="line"><span class="comment"># NAME     ENDPOINTS                                 AGE</span></span><br><span class="line"><span class="comment"># my-app   10.244.1.5:8080,10.244.2.3:8080,...       5d</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>排查技巧</strong>：如果 Service 访问不通，第一步就是看 Endpoint 是不是空的。如果 Endpoint 为空，说明 selector 没匹配到任何 Pod（标签写错了），跟网络无关。</p>
+<h2 id="九、实战：部署一个完整的服务"><a href="#九、实战：部署一个完整的服务" class="headerlink" title="九、实战：部署一个完整的服务"></a>九、实战：部署一个完整的服务</h2><p>把 Deployment + Service 组合起来，部署一个完整的服务：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 01-deployment.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:1.25</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;50m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;64Mi&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;100m&quot;</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 02-service.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 部署</span></span><br><span class="line">kubectl apply -f 01-deployment.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">kubectl get pods -l app=nginx</span><br><span class="line">kubectl get svc nginx</span><br><span class="line">kubectl get endpoints nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在集群内测试</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- wget -qO- http://nginx/hello</span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理</span></span><br><span class="line">kubectl delete -f 01-deployment.yaml</span><br></pre></td></tr></table></figure>
+
+<h2 id="十、常见问题排查"><a href="#十、常见问题排查" class="headerlink" title="十、常见问题排查"></a>十、常见问题排查</h2><h3 id="10-1-Service-访问不通？"><a href="#10-1-Service-访问不通？" class="headerlink" title="10.1 Service 访问不通？"></a>10.1 Service 访问不通？</h3><p>按这个顺序排查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. Service 存在吗？</span></span><br><span class="line">kubectl get svc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Endpoint 有值吗？（最关键的一步）</span></span><br><span class="line">kubectl get endpoints &lt;service-name&gt;</span><br><span class="line"><span class="comment"># 如果是空的 → selector 没匹配到 Pod → 检查标签</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Pod 标签对吗？</span></span><br><span class="line">kubectl get pods --show-labels</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. targetPort 对吗？</span></span><br><span class="line">kubectl describe svc &lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. DNS 能解析吗？</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- nslookup &lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 6. Pod 自身是否正常？</span></span><br><span class="line">curl http://&lt;pod-ip&gt;:8080/health</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-Endpoint-一直为空？"><a href="#10-2-Endpoint-一直为空？" class="headerlink" title="10.2 Endpoint 一直为空？"></a>10.2 Endpoint 一直为空？</h3><p>最常见的原因：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">原因1：selector 标签不匹配</span><br><span class="line">  Service selector:  app: nginx</span><br><span class="line">  Pod labels:        app: nginx-web    ← 不匹配！</span><br><span class="line"></span><br><span class="line">原因2：Pod 还没启动完</span><br><span class="line">  Pod 还是 ContainerCreating 或 CrashLoopBackOff 状态</span><br><span class="line">  只有 Running 且 readinessProbe 通过的 Pod 才会加入 Endpoint</span><br><span class="line"></span><br><span class="line">原因3：跨 Namespace</span><br><span class="line">  Service 在 default Namespace，Pod 在 production Namespace</span><br><span class="line">  Service 只能匹配同一 Namespace 下的 Pod</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-3-端口映射搞混了？"><a href="#10-3-端口映射搞混了？" class="headerlink" title="10.3 端口映射搞混了？"></a>10.3 端口映射搞混了？</h3><p>记住这个公式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">请求进来 → Service.port → (转发到) → Pod.containerPort</span><br><span class="line">                                           (通过) targetPort 指定</span><br></pre></td></tr></table></figure>
+
+<p><code>targetPort</code> 可以是一个数字，也可以是 Pod 里容器的端口名：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 方式1：直接写端口号</span></span><br><span class="line"><span class="attr">ports:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">targetPort:</span> <span class="number">8080</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 方式2：写容器定义的端口名（推荐，更清晰）</span></span><br><span class="line"><span class="attr">ports:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">targetPort:</span> <span class="string">http</span>   <span class="comment"># 对应 Pod 里 container 的 ports[].name: http</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常用命令速查"><a href="#常用命令速查" class="headerlink" title="常用命令速查"></a>常用命令速查</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Service</span></span><br><span class="line">kubectl expose deployment nginx --port=80 --target-port=80</span><br><span class="line">kubectl expose deployment nginx --port=80 --target-port=80 --<span class="built_in">type</span>=NodePort</span><br><span class="line">kubectl apply -f service.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Service</span></span><br><span class="line">kubectl get svc</span><br><span class="line">kubectl describe svc nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Endpoint</span></span><br><span class="line">kubectl get endpoints nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试 Service 可达性</span></span><br><span class="line">kubectl run <span class="built_in">test</span> --image=busybox:1.36 --<span class="built_in">rm</span> -it -- wget -qO- http://nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除 Service</span></span><br><span class="line">kubectl delete svc nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Service 是 K8s 网络模型中最核心的抽象，把动态变化的 Pod 包装成一个稳定的访问端点：</p>
+<ul>
+<li><strong>ClusterIP</strong> 是默认类型，适合集群内部微服务通信</li>
+<li><strong>NodePort</strong> 在每个节点开放端口，适合简单的外部访问</li>
+<li><strong>LoadBalancer</strong> 适合云上环境，自动创建外部负载均衡器</li>
+<li><strong>Headless Service</strong> 不做负载均衡，直接暴露 Pod IP，适合有状态应用</li>
+<li><strong>DNS 发现</strong>是最推荐的服务发现方式，简单可靠</li>
+<li>排查 Service 问题，<strong>第一步永远先看 Endpoint</strong></li>
+</ul>
+<hr>
+<p><em>封面图片来源：<a target="_blank" rel="noopener" href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31">Unsplash</a></em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/">erdong</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://erdong27.github.io/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/">https://erdong27.github.io/2026/05/19/2026-05-19-Service服务发现与网络入口/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://erdong27.github.io" target="_blank">erdong</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a><a class="post-meta__tags" href="/tags/Kubernetes/">Kubernetes</a><a class="post-meta__tags" href="/tags/Service/">Service</a><a class="post-meta__tags" href="/tags/ClusterIP/">ClusterIP</a><a class="post-meta__tags" href="/tags/NodePort/">NodePort</a><a class="post-meta__tags" href="/tags/LoadBalancer/">LoadBalancer</a><a class="post-meta__tags" href="/tags/%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/">服务发现</a></div><div class="post_share"><div class="social-share" data-image="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新"><img class="cover" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Deployment 声明式管理与滚动更新</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建"><img class="cover" src="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=1200" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-13</div><div class="title">K8s 架构总览与环境搭建</div></div></a></div><div><a href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元"><img class="cover" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-14</div><div class="title">Pod 深入理解——最小调度单元</div></div></a></div><div><a href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新"><img class="cover" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-15</div><div class="title">Deployment 声明式管理与滚动更新</div></div></a></div><div><a href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结"><img class="cover" src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=630&fit=crop" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-08</div><div class="title">架构演进之路总结</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">erdong</div><div class="author-info__description">JAVA后端开发攻城狮。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">58</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">113</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">24</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/erdong27"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/erdong27" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:15755699758@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="/atom.xml" target="_blank" title="RSS链接"><i class="fa fa-rss"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">本站所有博文均是博主的学习笔记与个人理解。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Service-%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3"><span class="toc-number">1.</span> <span class="toc-text">Service 服务发现与网络入口</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-Service%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">一、为什么需要 Service？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81Service-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.2.</span> <span class="toc-text">二、Service 是什么？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81Service-%E7%9A%84%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5"><span class="toc-number">1.3.</span> <span class="toc-text">三、Service 的核心概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E6%A0%87%E7%AD%BE%E9%80%89%E6%8B%A9%E5%99%A8"><span class="toc-number">1.3.1.</span> <span class="toc-text">3.1 标签选择器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-port-%E5%92%8C-targetPort"><span class="toc-number">1.3.2.</span> <span class="toc-text">3.2 port 和 targetPort</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-Service-%E8%87%AA%E5%B7%B1%E7%9A%84-IP"><span class="toc-number">1.3.3.</span> <span class="toc-text">3.3 Service 自己的 IP</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E4%B8%89%E7%A7%8D-Service-%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.4.</span> <span class="toc-text">四、三种 Service 类型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-ClusterIP%EF%BC%88%E9%BB%98%E8%AE%A4%E7%B1%BB%E5%9E%8B%EF%BC%89"><span class="toc-number">1.4.1.</span> <span class="toc-text">4.1 ClusterIP（默认类型）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-NodePort"><span class="toc-number">1.4.2.</span> <span class="toc-text">4.2 NodePort</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-LoadBalancer"><span class="toc-number">1.4.3.</span> <span class="toc-text">4.3 LoadBalancer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-%E4%B8%89%E7%A7%8D%E7%B1%BB%E5%9E%8B%E5%AF%B9%E6%AF%94"><span class="toc-number">1.4.4.</span> <span class="toc-text">4.4 三种类型对比</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81Service-%E7%9A%84%E6%B5%81%E9%87%8F%E5%88%86%E5%8F%91%E6%9C%BA%E5%88%B6"><span class="toc-number">1.5.</span> <span class="toc-text">五、Service 的流量分发机制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-kube-proxy-%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.5.1.</span> <span class="toc-text">5.1 kube-proxy 的工作模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-SessionAffinity%EF%BC%88%E4%BC%9A%E8%AF%9D%E4%BA%B2%E5%92%8C%E6%80%A7%EF%BC%89"><span class="toc-number">1.5.2.</span> <span class="toc-text">5.2 SessionAffinity（会话亲和性）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81Headless-Service"><span class="toc-number">1.6.</span> <span class="toc-text">六、Headless Service</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81Service-%E5%8F%91%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="toc-number">1.7.</span> <span class="toc-text">七、Service 发现方式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%EF%BC%88%E8%80%81%E6%96%B9%E5%BC%8F%EF%BC%89"><span class="toc-number">1.7.1.</span> <span class="toc-text">7.1 环境变量（老方式）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-2-DNS%EF%BC%88%E6%8E%A8%E8%8D%90%E6%96%B9%E5%BC%8F%EF%BC%89"><span class="toc-number">1.7.2.</span> <span class="toc-text">7.2 DNS（推荐方式）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81Service-%E4%B8%8E-Endpoint-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.8.</span> <span class="toc-text">八、Service 与 Endpoint 的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E5%AE%9E%E6%88%98%EF%BC%9A%E9%83%A8%E7%BD%B2%E4%B8%80%E4%B8%AA%E5%AE%8C%E6%95%B4%E7%9A%84%E6%9C%8D%E5%8A%A1"><span class="toc-number">1.9.</span> <span class="toc-text">九、实战：部署一个完整的服务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="toc-number">1.10.</span> <span class="toc-text">十、常见问题排查</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#10-1-Service-%E8%AE%BF%E9%97%AE%E4%B8%8D%E9%80%9A%EF%BC%9F"><span class="toc-number">1.10.1.</span> <span class="toc-text">10.1 Service 访问不通？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-2-Endpoint-%E4%B8%80%E7%9B%B4%E4%B8%BA%E7%A9%BA%EF%BC%9F"><span class="toc-number">1.10.2.</span> <span class="toc-text">10.2 Endpoint 一直为空？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-3-%E7%AB%AF%E5%8F%A3%E6%98%A0%E5%B0%84%E6%90%9E%E6%B7%B7%E4%BA%86%EF%BC%9F"><span class="toc-number">1.10.3.</span> <span class="toc-text">10.3 端口映射搞混了？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E9%80%9F%E6%9F%A5"><span class="toc-number">1.11.</span> <span class="toc-text">常用命令速查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.12.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/" title="Service 服务发现与网络入口"><img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Service 服务发现与网络入口"/></a><div class="content"><a class="title" href="/2026/05/19/2026-05-19-Service%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E5%85%A5%E5%8F%A3/" title="Service 服务发现与网络入口">Service 服务发现与网络入口</a><time datetime="2026-05-19T00:33:00.000Z" title="发表于 2026-05-19 08:33:00">2026-05-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新"><img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Deployment 声明式管理与滚动更新"/></a><div class="content"><a class="title" href="/2026/05/15/2026-05-15-Deployment%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0/" title="Deployment 声明式管理与滚动更新">Deployment 声明式管理与滚动更新</a><time datetime="2026-05-15T00:35:00.000Z" title="发表于 2026-05-15 08:35:00">2026-05-15</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元"><img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Pod 深入理解——最小调度单元"/></a><div class="content"><a class="title" href="/2026/05/14/2026-05-14-Pod%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E2%80%94%E2%80%94%E6%9C%80%E5%B0%8F%E8%B0%83%E5%BA%A6%E5%8D%95%E5%85%83/" title="Pod 深入理解——最小调度单元">Pod 深入理解——最小调度单元</a><time datetime="2026-05-14T00:35:00.000Z" title="发表于 2026-05-14 08:35:00">2026-05-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建"><img src="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=1200" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="K8s 架构总览与环境搭建"/></a><div class="content"><a class="title" href="/2026/05/13/2026-05-13-K8s%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" title="K8s 架构总览与环境搭建">K8s 架构总览与环境搭建</a><time datetime="2026-05-13T00:48:00.000Z" title="发表于 2026-05-13 08:48:00">2026-05-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&amp;h=630&amp;fit=crop" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="架构演进之路总结"/></a><div class="content"><a class="title" href="/2026/05/08/2026-05-08-%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E4%B9%8B%E8%B7%AF%E6%80%BB%E7%BB%93/" title="架构演进之路总结">架构演进之路总结</a><time datetime="2026-05-08T00:35:00.000Z" title="发表于 2026-05-08 08:35:00">2026-05-08</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200')"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2026 By erdong</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">簡</button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=4.13.0"></script><script src="/js/main.js?v=4.13.0"></script><script src="/js/tw_cn.js?v=4.13.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const abcjsInit = () => {
+    const abcjsFn = () => {
+      document.querySelectorAll(".abc-music-sheet").forEach(ele => {
+        ABCJS.renderAbc(ele, ele.innerHTML, {responsive: 'resize'})
+      })
+    }
+    
+    typeof ABCJS === 'object' ? abcjsFn()
+      : getScript('https://cdn.jsdelivr.net/npm/abcjs@6.3.0/dist/abcjs-basic-min.min.js').then(abcjsFn)
+  }
+
+  window.pjax ? abcjsInit() : window.addEventListener('load', abcjsInit)
+})()</script><script>(() => {
+  const initValine = () => {
+    const valine = new Valine(Object.assign({
+      el: '#vcomment',
+      appId: 'RtAaWnTbl5sb7Uybofela0v4-gzGzoHsz',
+      appKey: 'ofjxyyACZSwMdDG3wK9Ul8oG',
+      avatar: 'monsterid',
+      serverURLs: '',
+      emojiMaps: "",
+      path: window.location.pathname,
+      visitor: false
+    }, null))
+  }
+
+  const loadValine = async () => {
+    if (typeof Valine === 'function') initValine()
+    else {
+      await getScript('https://cdn.jsdelivr.net/npm/valine@1.5.1/dist/Valine.min.js')
+      initValine()
+    }
+  }
+
+  if ('Valine' === 'Valine' || !true) {
+    if (true) btf.loadComment(document.getElementById('vcomment'),loadValine)
+    else setTimeout(loadValine, 0)
+  } else {
+    window.loadOtherComment = loadValine
+  }
+})()</script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.3/dist/click-heart.min.js" async="async" mobile="false"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=4.13.0"></script></div></div></body></html>
