@@ -8998,4 +8998,150 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>Secret</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Namespace 资源隔离与多环境实践</title>
+    <url>/2026/05/20/2026-05-20-Namespace-%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%B8%8E%E5%A4%9A%E7%8E%AF%E5%A2%83%E5%AE%9E%E8%B7%B5/</url>
+    <content><![CDATA[<h2 id="Namespace-是什么？"><a href="#Namespace-是什么？" class="headerlink" title="Namespace 是什么？"></a>Namespace 是什么？</h2><p>想象你租了一栋办公楼，所有团队挤在一起办公——产品组在调试大屏，测试组在跑压测，开发组在部署新版本。资源抢夺、命名冲突、误操作删库……灾难每天都在发生。</p>
+<p>**Namespace 就是 K8s 里的”楼层”**。它把一个物理集群逻辑上切分成多个虚拟集群，每个团队占一层，互不干扰。</p>
+<p>但要注意：Namespace 提供的是<strong>逻辑隔离</strong>，不是物理隔离。不同 Namespace 的 Pod 之间网络默认是互通的（除非你配了 NetworkPolicy）。</p>
+<h2 id="为什么需要-Namespace？"><a href="#为什么需要-Namespace？" class="headerlink" title="为什么需要 Namespace？"></a>为什么需要 Namespace？</h2><p>三个核心痛点：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>没有 Namespace</th>
+<th>有 Namespace</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>资源争抢</td>
+<td>一个团队跑满 CPU，其他团队卡死</td>
+<td>每个 Namespace 配 ResourceQuota，各用各的</td>
+</tr>
+<tr>
+<td>命名冲突</td>
+<td>两个团队都想叫 <code>api-server</code></td>
+<td>同名 Service 可以存在于不同 Namespace</td>
+</tr>
+<tr>
+<td>权限失控</td>
+<td>开发人员可能误删生产资源</td>
+<td>RBAC 按 Namespace 限定权限范围</td>
+</tr>
+</tbody></table>
+<h2 id="Namespace-核心操作"><a href="#Namespace-核心操作" class="headerlink" title="Namespace 核心操作"></a>Namespace 核心操作</h2><h3 id="创建与查看"><a href="#创建与查看" class="headerlink" title="创建与查看"></a>创建与查看</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 方式一：命令行直接创建</span></span><br><span class="line"><span class="string">kubectl</span> <span class="string">create</span> <span class="string">namespace</span> <span class="string">dev</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 方式二：YAML 声明式创建</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Namespace</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">staging</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">env:</span> <span class="string">staging</span></span><br><span class="line">    <span class="attr">team:</span> <span class="string">backend</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看所有 Namespace</span></span><br><span class="line">kubectl get ns</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看指定 Namespace 下的资源</span></span><br><span class="line">kubectl get all -n dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在当前上下文中设置默认 Namespace</span></span><br><span class="line">kubectl config set-context --current --namespace=dev</span><br></pre></td></tr></table></figure>
+
+<h3 id="删除-Namespace"><a href="#删除-Namespace" class="headerlink" title="删除 Namespace"></a>删除 Namespace</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ⚠️ 危险操作！删除 Namespace 会删除其下所有资源</span></span><br><span class="line">kubectl delete ns staging</span><br></pre></td></tr></table></figure>
+
+<p><strong>切记：</strong> 删 Namespace 是不可逆的级联删除。生产环境永远不要随意执行这条命令。</p>
+<h2 id="K8s-内置-Namespace"><a href="#K8s-内置-Namespace" class="headerlink" title="K8s 内置 Namespace"></a>K8s 内置 Namespace</h2><p>一个新集群默认会带这几个 Namespace：</p>
+<table>
+<thead>
+<tr>
+<th>Namespace</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>default</code></td>
+<td>没指定 Namespace 时的默认去处</td>
+</tr>
+<tr>
+<td><code>kube-system</code></td>
+<td>K8s 核心组件（etcd、CoreDNS、kube-proxy 等）</td>
+</tr>
+<tr>
+<td><code>kube-public</code></td>
+<td>公开可读资源，通常存放集群信息</td>
+</tr>
+<tr>
+<td><code>kube-node-lease</code></td>
+<td>节点心跳租约，用于节点存活检测</td>
+</tr>
+</tbody></table>
+<p><strong>实践建议：</strong> 永远不要在 <code>default</code> 和 <code>kube-system</code> 里部署业务应用。<code>default</code> 是垃圾桶，谁都能往里扔东西；<code>kube-system</code> 是系统领地，别碰。</p>
+<h2 id="资源配额：ResourceQuota"><a href="#资源配额：ResourceQuota" class="headerlink" title="资源配额：ResourceQuota"></a>资源配额：ResourceQuota</h2><p>Namespace 如果不设限，一个团队就能把整个集群的资源吃光。<strong>ResourceQuota</strong> 就是给每层楼装电表——用超了就断电。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ResourceQuota</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">dev-quota</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hard:</span></span><br><span class="line">    <span class="comment"># 计算资源</span></span><br><span class="line">    <span class="attr">requests.cpu:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">    <span class="attr">requests.memory:</span> <span class="string">20Gi</span></span><br><span class="line">    <span class="attr">limits.cpu:</span> <span class="string">&quot;20&quot;</span></span><br><span class="line">    <span class="attr">limits.memory:</span> <span class="string">40Gi</span></span><br><span class="line">    <span class="comment"># 对象数量</span></span><br><span class="line">    <span class="attr">pods:</span> <span class="string">&quot;50&quot;</span></span><br><span class="line">    <span class="attr">services:</span> <span class="string">&quot;20&quot;</span></span><br><span class="line">    <span class="attr">persistentvolumeclaims:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">    <span class="attr">configmaps:</span> <span class="string">&quot;30&quot;</span></span><br><span class="line">    <span class="attr">secrets:</span> <span class="string">&quot;30&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>关键点：</p>
+<ul>
+<li><strong>requests vs limits</strong>：requests 是保底保障，limits 是天花板。Quota 两者都能限制。</li>
+<li><strong>超限行为</strong>：创建超过 Quota 的 Pod 会被直接拒绝（状态 <code>Forbidden</code>），不会排队等待。</li>
+</ul>
+<h3 id="查看配额使用情况"><a href="#查看配额使用情况" class="headerlink" title="查看配额使用情况"></a>查看配额使用情况</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl describe quota -n dev</span><br></pre></td></tr></table></figure>
+
+<p>输出会清晰显示每个资源的 <code>Used</code> 和 <code>Hard</code>，一目了然。</p>
+<h2 id="默认资源限制：LimitRange"><a href="#默认资源限制：LimitRange" class="headerlink" title="默认资源限制：LimitRange"></a>默认资源限制：LimitRange</h2><p>ResourceQuota 管总量，但管不了单个 Pod 写多大的 requests&#x2F;limits。<strong>LimitRange</strong> 补上了这个缺口——给每个”房间”设规矩。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">LimitRange</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">dev-limits</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">limits:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Container</span></span><br><span class="line">    <span class="attr">default:</span>           <span class="comment"># 未设 limits 时的默认值</span></span><br><span class="line">      <span class="attr">cpu:</span> <span class="string">&quot;500m&quot;</span></span><br><span class="line">      <span class="attr">memory:</span> <span class="string">&quot;512Mi&quot;</span></span><br><span class="line">    <span class="attr">defaultRequest:</span>    <span class="comment"># 未设 requests 时的默认值</span></span><br><span class="line">      <span class="attr">cpu:</span> <span class="string">&quot;100m&quot;</span></span><br><span class="line">      <span class="attr">memory:</span> <span class="string">&quot;128Mi&quot;</span></span><br><span class="line">    <span class="attr">max:</span>               <span class="comment"># 单容器上限</span></span><br><span class="line">      <span class="attr">cpu:</span> <span class="string">&quot;2&quot;</span></span><br><span class="line">      <span class="attr">memory:</span> <span class="string">&quot;4Gi&quot;</span></span><br><span class="line">    <span class="attr">min:</span>               <span class="comment"># 单容器下限</span></span><br><span class="line">      <span class="attr">cpu:</span> <span class="string">&quot;50m&quot;</span></span><br><span class="line">      <span class="attr">memory:</span> <span class="string">&quot;64Mi&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>工作流程：</strong></p>
+<ol>
+<li>Pod 没写 requests&#x2F;limits → 自动填充 defaultRequest 和 default</li>
+<li>Pod 写了但超过 max → 创建被拒绝</li>
+<li>Pod 写了但低于 min → 创建被拒绝</li>
+</ol>
+<p>这样就杜绝了两种极端：不写资源限制的”裸奔 Pod”，和一口吃掉 16 核 CPU 的”巨兽 Pod”。</p>
+<h2 id="多环境实践方案"><a href="#多环境实践方案" class="headerlink" title="多环境实践方案"></a>多环境实践方案</h2><h3 id="方案一：一个集群多个-Namespace"><a href="#方案一：一个集群多个-Namespace" class="headerlink" title="方案一：一个集群多个 Namespace"></a>方案一：一个集群多个 Namespace</h3><p>最常见的方式，适合中小团队：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Cluster</span><br><span class="line">├── namespace: dev        # 开发环境</span><br><span class="line">├── namespace: staging    # 预发布环境</span><br><span class="line">└── namespace: production # 生产环境</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点：</strong> 资源利用率高，管理简单<br><strong>缺点：</strong> 隔离性弱，一个集群挂了全完</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 快速创建三个环境</span></span><br><span class="line">kubectl create ns dev</span><br><span class="line">kubectl create ns staging</span><br><span class="line">kubectl create ns production</span><br><span class="line"></span><br><span class="line"><span class="comment"># 给每个环境打标签</span></span><br><span class="line">kubectl label ns/dev <span class="built_in">env</span>=dev</span><br><span class="line">kubectl label ns/staging <span class="built_in">env</span>=staging</span><br><span class="line">kubectl label ns/production <span class="built_in">env</span>=production</span><br></pre></td></tr></table></figure>
+
+<h3 id="方案二：多集群隔离"><a href="#方案二：多集群隔离" class="headerlink" title="方案二：多集群隔离"></a>方案二：多集群隔离</h3><p>大厂标配——开发和生产根本不在同一个物理集群：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Dev Cluster        →  dev / test Namespace</span><br><span class="line">Staging Cluster    →  staging Namespace</span><br><span class="line">Production Cluster →  production Namespace</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点：</strong> 物理隔离，安全合规<br><strong>缺点：</strong> 运维成本翻倍</p>
+<h3 id="方案三：混合模式（推荐）"><a href="#方案三：混合模式（推荐）" class="headerlink" title="方案三：混合模式（推荐）"></a>方案三：混合模式（推荐）</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Non-Prod Cluster → dev / test / staging Namespace</span><br><span class="line">Prod Cluster     → production Namespace</span><br></pre></td></tr></table></figure>
+
+<p>开发和预发布共享一个集群（用 Namespace 隔离），生产独占一个集群。兼顾成本和安全。</p>
+<h2 id="RBAC-与-Namespace-配合"><a href="#RBAC-与-Namespace-配合" class="headerlink" title="RBAC 与 Namespace 配合"></a>RBAC 与 Namespace 配合</h2><p>光分 Namespace 不够，还得控制谁能访问哪个 Namespace：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 开发人员只能操作 dev Namespace</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">developer</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>, <span class="string">&quot;apps&quot;</span>]</span><br><span class="line">  <span class="attr">resources:</span> [<span class="string">&quot;pods&quot;</span>, <span class="string">&quot;deployments&quot;</span>, <span class="string">&quot;services&quot;</span>, <span class="string">&quot;configmaps&quot;</span>]</span><br><span class="line">  <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>, <span class="string">&quot;watch&quot;</span>, <span class="string">&quot;create&quot;</span>, <span class="string">&quot;update&quot;</span>, <span class="string">&quot;delete&quot;</span>]</span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">RoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">developer-binding</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">dev</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">User</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">zhangsan</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">developer</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br></pre></td></tr></table></figure>
+
+<p>关键区别：</p>
+<ul>
+<li><strong>Role + RoleBinding</strong> → 限定在某个 Namespace 内</li>
+<li><strong>ClusterRole + ClusterRoleBinding</strong> → 集群全局权限</li>
+</ul>
+<p><strong>铁律：</strong> 生产环境的 Namespace，开发人员绝对不能有写权限。用 CI&#x2F;CD 管道来部署，人不能直接操作。</p>
+<h2 id="跨-Namespace-通信"><a href="#跨-Namespace-通信" class="headerlink" title="跨 Namespace 通信"></a>跨 Namespace 通信</h2><p>Namespace 之间网络默认互通。访问其他 Namespace 的 Service 用<strong>全限定域名（FQDN）</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<p>例如 <code>dev</code> Namespace 里的 Pod 要访问 <code>staging</code> 的 <code>api-server</code>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl http://api-server.staging.svc.cluster.local:8080</span><br></pre></td></tr></table></figure>
+
+<p>这是 K8s 内部 DNS 的标准解析规则，不需要额外配置。</p>
+<h2 id="最佳实践清单"><a href="#最佳实践清单" class="headerlink" title="最佳实践清单"></a>最佳实践清单</h2><ol>
+<li><strong>命名规范</strong>：<code>&lt;团队&gt;-&lt;环境&gt;</code>，如 <code>payment-dev</code>、<code>payment-staging</code></li>
+<li><strong>始终配 ResourceQuota</strong>：没有 Quota 的 Namespace 等于没有刹车</li>
+<li><strong>始终配 LimitRange</strong>：防止裸奔 Pod 和巨兽 Pod</li>
+<li><strong>RBAC 严格管控</strong>：开发不碰生产，生产只走 CI&#x2F;CD</li>
+<li><strong>不要在 default 里放任何东西</strong></li>
+<li><strong>不要把不相关的应用塞进同一个 Namespace</strong>——Namespace 是按业务&#x2F;团队切分的，不是按技术层切分</li>
+<li><strong>CI&#x2F;CD 中显式指定 Namespace</strong>：部署脚本里写死 <code>-n production</code>，别依赖上下文</li>
+</ol>
+<h2 id="避坑指南"><a href="#避坑指南" class="headerlink" title="避坑指南"></a>避坑指南</h2><h3 id="坑-1：以为-Namespace-网络隔离了"><a href="#坑-1：以为-Namespace-网络隔离了" class="headerlink" title="坑 1：以为 Namespace 网络隔离了"></a>坑 1：以为 Namespace 网络隔离了</h3><p>默认没有。要实现网络隔离，必须配合 <strong>NetworkPolicy</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">NetworkPolicy</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">deny-from-other-ns</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">production</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">podSelector:</span> &#123;&#125;</span><br><span class="line">  <span class="attr">policyTypes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Ingress</span></span><br><span class="line">  <span class="attr">ingress:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">from:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">podSelector:</span> &#123;&#125;  <span class="comment"># 只允许同 Namespace 内的流量</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="坑-2：删除-Namespace-卡在-Terminating"><a href="#坑-2：删除-Namespace-卡在-Terminating" class="headerlink" title="坑 2：删除 Namespace 卡在 Terminating"></a>坑 2：删除 Namespace 卡在 Terminating</h3><p>通常是 Namespace 下还有.finalizers 的资源没清干净：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 Namespace 详情</span></span><br><span class="line">kubectl describe ns &lt;stuck-namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强制清理（最后手段）</span></span><br><span class="line">kubectl get ns &lt;stuck-namespace&gt; -o json | \</span><br><span class="line">  jq <span class="string">&#x27;.spec.finalizers = []&#x27;</span> | \</span><br><span class="line">  kubectl replace --raw /api/v1/namespaces/&lt;stuck-namespace&gt;/finalize -f -</span><br></pre></td></tr></table></figure>
+
+<h3 id="坑-3：忘记给-K8s-组件设-ResourceQuota"><a href="#坑-3：忘记给-K8s-组件设-ResourceQuota" class="headerlink" title="坑 3：忘记给 K8s 组件设 ResourceQuota"></a>坑 3：忘记给 K8s 组件设 ResourceQuota</h3><p><code>kube-system</code> 默认没有 Quota，但如果你在里头装了太多插件，照样能把节点资源吃光。给系统组件也加上 LimitRange。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>Namespace 是 K8s 多租户的基石。单独使用它只能解决命名冲突，配合 ResourceQuota、LimitRange、RBAC、NetworkPolicy 四件套，才能构建真正的多环境隔离体系。记住：<strong>隔离从来不是一个功能，而是一组策略的组合</strong>。</p>
+<hr>
+<blockquote>
+<p>封面图片来自 <a href="https://unsplash.com/photos/office-building-QckP372KwQo">Unsplash</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>Kubernetes</tag>
+        <tag>K8s</tag>
+        <tag>Namespace</tag>
+        <tag>资源隔离</tag>
+      </tags>
+  </entry>
 </search>
