@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-20T00:37:20.550Z</updated>
+  <updated>2026-05-21T00:37:56.655Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>基础概念总结与实战：部署一个完整应用</title>
+    <link href="https://erdong27.github.io/2026/05/21/2026-05-21-%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5%E6%80%BB%E7%BB%93%E4%B8%8E%E5%AE%9E%E6%88%98-%E9%83%A8%E7%BD%B2%E4%B8%80%E4%B8%AA%E5%AE%8C%E6%95%B4%E5%BA%94%E7%94%A8/"/>
+    <id>https://erdong27.github.io/2026/05/21/2026-05-21-%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5%E6%80%BB%E7%BB%93%E4%B8%8E%E5%AE%9E%E6%88%98-%E9%83%A8%E7%BD%B2%E4%B8%80%E4%B8%AA%E5%AE%8C%E6%95%B4%E5%BA%94%E7%94%A8/</id>
+    <published>2026-05-21T00:35:00.000Z</published>
+    <updated>2026-05-21T00:37:56.655Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h2&gt;&lt;p&gt;前面六天我们学了 K8s</summary>
+        
+      
+    
+    
+    
+    <category term="Kubernetes 学习路线" scheme="https://erdong27.github.io/categories/Kubernetes-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF/"/>
+    
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="容器编排" scheme="https://erdong27.github.io/tags/%E5%AE%B9%E5%99%A8%E7%BC%96%E6%8E%92/"/>
+    
+    <category term="K8s" scheme="https://erdong27.github.io/tags/K8s/"/>
+    
+    <category term="实战" scheme="https://erdong27.github.io/tags/%E5%AE%9E%E6%88%98/"/>
+    
+  </entry>
   
   <entry>
     <title>Namespace 资源隔离与多环境实践</title>
@@ -653,42 +684,6 @@
     <category term="垃圾收集器" scheme="https://erdong27.github.io/tags/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/"/>
     
     <category term="性能调优" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>并发编程最佳实践总结</title>
-    <link href="https://erdong27.github.io/2026/04/16/2026-04-16-%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/"/>
-    <id>https://erdong27.github.io/2026/04/16/2026-04-16-%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E6%80%BB%E7%BB%93/</id>
-    <published>2026-04-16T10:00:00.000Z</published>
-    <updated>2026-04-16T00:36:38.345Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
-&lt;p&gt;⚠️ &lt;strong&gt;本文基于以下版本编写：&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Java&lt;/strong&gt;: 8 / 11 / 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;JDK 并发包&lt;/strong&gt;: &lt;code&gt;java.util.concurrent&lt;/code&gt;（JDK 8+）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Spring Boot&lt;/strong&gt;: 2.7.x / 3.x（线程池配置部分）&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/blockquote&gt;
-&lt;hr&gt;
-&lt;p&gt;经过前六天对并发编程核心组件的深入学习，今天做一次系统性总结。本文不是简单的知识点罗列，而是从&lt;strong&gt;实战角度&lt;/strong&gt;梳理并发编程中最容易踩坑的地方，以及经过验证的最佳实践。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="Java进阶" scheme="https://erdong27.github.io/categories/Java%E8%BF%9B%E9%98%B6/"/>
-    
-    
-    <category term="最佳实践" scheme="https://erdong27.github.io/tags/%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/"/>
-    
-    <category term="Java" scheme="https://erdong27.github.io/tags/Java/"/>
-    
-    <category term="并发编程" scheme="https://erdong27.github.io/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/"/>
-    
-    <category term="线程池" scheme="https://erdong27.github.io/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/"/>
-    
-    <category term="多线程" scheme="https://erdong27.github.io/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/"/>
     
   </entry>
   
