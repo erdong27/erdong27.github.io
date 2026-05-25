@@ -9422,4 +9422,265 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>存储卷</tag>
       </tags>
   </entry>
+  <entry>
+    <title>PV 与 PVC——持久化存储声明与供应</title>
+    <url>/2026/05/25/2026-05-25-PV%E4%B8%8EPVC%E2%80%94%E2%80%94%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E5%A3%B0%E6%98%8E%E4%B8%8E%E4%BE%9B%E5%BA%94/</url>
+    <content><![CDATA[<h2 id="前言：容器里的数据去哪了？"><a href="#前言：容器里的数据去哪了？" class="headerlink" title="前言：容器里的数据去哪了？"></a>前言：容器里的数据去哪了？</h2><p>你有没有遇到过这样的场景：在 Kubernetes 里跑了一个 MySQL 数据库，某天 Pod 因为节点故障被重新调度到另一个节点，结果发现——<strong>数据没了</strong>！</p>
+<p>这不是 Bug，这是容器的”天性”。容器天生就是”用完即弃”的，Pod 里的数据默认只存在于容器内部，Pod 一旦销毁，数据就跟着消失了。</p>
+<p>对于无状态应用（如 Nginx），这没问题，随时可以重建。但对于有状态应用（如数据库、消息队列），数据丢失就是灾难。</p>
+<p>这就引出了 Kubernetes 持久化存储的核心概念——<strong>PV 和 PVC</strong>。</p>
+<hr>
+<h2 id="一、什么是-PV（PersistentVolume）？"><a href="#一、什么是-PV（PersistentVolume）？" class="headerlink" title="一、什么是 PV（PersistentVolume）？"></a>一、什么是 PV（PersistentVolume）？</h2><p><strong>PV 是持久化卷（PersistentVolume）的缩写，是集群级别的资源，代表一块存储。</strong></p>
+<p>可以把它理解成”硬盘”——一块真实的、可用的存储空间。它可能来自：</p>
+<ul>
+<li>本地磁盘（hostPath）</li>
+<li>网络存储（NFS、Ceph、GlusterFS）</li>
+<li>云厂商的存储服务（AWS EBS、Azure Disk、阿里云盘）</li>
+</ul>
+<h3 id="PV-的核心属性"><a href="#PV-的核心属性" class="headerlink" title="PV 的核心属性"></a>PV 的核心属性</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pv-nfs-10gi</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">10Gi</span>        <span class="comment"># 存储大小</span></span><br><span class="line">  <span class="attr">volumeMode:</span> <span class="string">Filesystem</span> <span class="comment"># 文件系统模式（或 Block）</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span>      <span class="comment"># 访问模式</span></span><br><span class="line">  <span class="attr">persistentVolumeReclaimPolicy:</span> <span class="string">Retain</span>  <span class="comment"># 回收策略</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs</span>  <span class="comment"># 存储类名</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.1</span><span class="number">.100</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/data/nfs</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键属性解读：</strong></p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>capacity.storage</code></td>
+<td>存储容量，如 10Gi</td>
+</tr>
+<tr>
+<td><code>accessModes</code></td>
+<td>访问模式（见下表）</td>
+</tr>
+<tr>
+<td><code>persistentVolumeReclaimPolicy</code></td>
+<td>回收策略（Retain&#x2F;Delete&#x2F;Recycle）</td>
+</tr>
+<tr>
+<td><code>storageClassName</code></td>
+<td>所属存储类，用于 PVC 匹配</td>
+</tr>
+<tr>
+<td><code>volumeMode</code></td>
+<td>Filesystem（文件系统）或 Block（块设备）</td>
+</tr>
+</tbody></table>
+<p><strong>访问模式（AccessModes）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>缩写</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ReadWriteOnce</td>
+<td>RWO</td>
+<td>单节点读写（最常用）</td>
+</tr>
+<tr>
+<td>ReadOnlyMany</td>
+<td>ROX</td>
+<td>多节点只读</td>
+</tr>
+<tr>
+<td>ReadWriteMany</td>
+<td>RWX</td>
+<td>多节点读写（如 NFS）</td>
+</tr>
+<tr>
+<td>ReadWriteOncePod</td>
+<td>RWOPOD</td>
+<td>单 Pod 独占（K8s 1.22+）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二、什么是-PVC（PersistentVolumeClaim）？"><a href="#二、什么是-PVC（PersistentVolumeClaim）？" class="headerlink" title="二、什么是 PVC（PersistentVolumeClaim）？"></a>二、什么是 PVC（PersistentVolumeClaim）？</h2><p><strong>PVC 是持久化卷声明（PersistentVolumeClaim）的缩写，是命名空间级别的资源，代表对存储的”需求”。</strong></p>
+<p>可以把它理解成”申请单”——用户说”我需要 10Gi 的存储，读写模式是 RWO”，Kubernetes 会根据这个需求去找合适的 PV 进行绑定。</p>
+<h3 id="PVC-的核心属性"><a href="#PVC-的核心属性" class="headerlink" title="PVC 的核心属性"></a>PVC 的核心属性</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pvc-mysql</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键属性解读：</strong></p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>accessModes</code></td>
+<td>需要的访问模式，必须与 PV 匹配</td>
+</tr>
+<tr>
+<td><code>resources.requests.storage</code></td>
+<td>需要的存储大小</td>
+</tr>
+<tr>
+<td><code>storageClassName</code></td>
+<td>指定存储类，用于动态供应</td>
+</tr>
+<tr>
+<td><code>selector</code></td>
+<td>可选，用于精确匹配 PV 的标签</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="三、PV-与-PVC-的关系"><a href="#三、PV-与-PVC-的关系" class="headerlink" title="三、PV 与 PVC 的关系"></a>三、PV 与 PVC 的关系</h2><p>用一句话总结：</p>
+<blockquote>
+<p><strong>PV 是”供应”，PVC 是”需求”，它们通过”绑定”建立联系。</strong></p>
+</blockquote>
+<h3 id="绑定过程"><a href="#绑定过程" class="headerlink" title="绑定过程"></a>绑定过程</h3><ol>
+<li><strong>静态供应</strong>：管理员提前创建 PV，用户创建 PVC，Kubernetes 自动匹配并绑定。</li>
+<li><strong>动态供应</strong>：用户创建 PVC，Kubernetes 根据 StorageClass 自动创建 PV 并绑定。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────┐</span><br><span class="line">│                     Kubernetes 集群                          │</span><br><span class="line">│                                                             │</span><br><span class="line">│  ┌──────────────┐         ┌──────────────┐                  │</span><br><span class="line">│  │     PV       │ ◄─────► │     PVC      │                  │</span><br><span class="line">│  │  (集群级资源) │  绑定    │ (命名空间级) │                  │</span><br><span class="line">│  └──────────────┘         └──────────────┘                  │</span><br><span class="line">│         ▲                        │                          │</span><br><span class="line">│         │                        │                          │</span><br><span class="line">│    真实存储                   Pod 挂载                       │</span><br><span class="line">│   (NFS/云盘等)                   ▼                          │</span><br><span class="line">│                          ┌──────────────┐                  │</span><br><span class="line">│                          │     Pod      │                  │</span><br><span class="line">│                          │  (volumeClaim)│                  │</span><br><span class="line">│                          └──────────────┘                  │</span><br><span class="line">└─────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="绑定条件"><a href="#绑定条件" class="headerlink" title="绑定条件"></a>绑定条件</h3><p>PVC 能绑定 PV，必须满足以下条件：</p>
+<ol>
+<li>存储容量：PVC 请求 ≤ PV 容量</li>
+<li>访问模式：PVC 模式 ⊆ PV 模式</li>
+<li>存储类：PVC 的 storageClassName 与 PV 一致（或都为空）</li>
+</ol>
+<hr>
+<h2 id="四、PV-的生命周期"><a href="#四、PV-的生命周期" class="headerlink" title="四、PV 的生命周期"></a>四、PV 的生命周期</h2><p>PV 有 4 个阶段，完整生命周期如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Available ──► Bound ──► Released ──► (根据回收策略)</span><br><span class="line">    │           │          │</span><br><span class="line">    │           │          ├──► Retain: 保留数据，需手动回收</span><br><span class="line">    │           │          ├──► Delete: 自动删除 PV 和底层存储</span><br><span class="line">    │           │          └──► Recycle: 清空数据（已废弃）</span><br><span class="line">    │           │</span><br><span class="line">    │           └── PVC 绑定后，进入 Bound 状态</span><br><span class="line">    │</span><br><span class="line">    └── PV 创建后，进入 Available 状态</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Available</strong></td>
+<td>可用状态，尚未被 PVC 绑定</td>
+</tr>
+<tr>
+<td><strong>Bound</strong></td>
+<td>已绑定到某个 PVC</td>
+</tr>
+<tr>
+<td><strong>Released</strong></td>
+<td>PVC 已删除，但 PV 还没回收</td>
+</tr>
+<tr>
+<td><strong>Failed</strong></td>
+<td>自动回收失败</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五、实战：为-MySQL-配置持久化存储"><a href="#五、实战：为-MySQL-配置持久化存储" class="headerlink" title="五、实战：为 MySQL 配置持久化存储"></a>五、实战：为 MySQL 配置持久化存储</h2><p>下面用一个完整示例演示：创建 NFS 类型的 PV，供 MySQL 使用。</p>
+<h3 id="步骤-1：创建-PV"><a href="#步骤-1：创建-PV" class="headerlink" title="步骤 1：创建 PV"></a>步骤 1：创建 PV</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># pv.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pv-mysql</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line">  <span class="attr">volumeMode:</span> <span class="string">Filesystem</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">persistentVolumeReclaimPolicy:</span> <span class="string">Retain</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.1</span><span class="number">.100</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/data/mysql</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-2：创建-PVC"><a href="#步骤-2：创建-PVC" class="headerlink" title="步骤 2：创建 PVC"></a>步骤 2：创建 PVC</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># pvc.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pvc-mysql</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-3：在-Pod-中使用-PVC"><a href="#步骤-3：在-Pod-中使用-PVC" class="headerlink" title="步骤 3：在 Pod 中使用 PVC"></a>步骤 3：在 Pod 中使用 PVC</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># mysql.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">mysql</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">mysql</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">mysql</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">mysql</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">mysql:8.0</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">3306</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">MYSQL_ROOT_PASSWORD</span></span><br><span class="line">          <span class="attr">value:</span> <span class="string">&quot;root123&quot;</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">mysql-data</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/var/lib/mysql</span>  <span class="comment"># MySQL 数据目录</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">mysql-data</span></span><br><span class="line">        <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">          <span class="attr">claimName:</span> <span class="string">pvc-mysql</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-4：验证"><a href="#步骤-4：验证" class="headerlink" title="步骤 4：验证"></a>步骤 4：验证</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建资源</span></span><br><span class="line">kubectl apply -f pv.yaml</span><br><span class="line">kubectl apply -f pvc.yaml</span><br><span class="line">kubectl apply -f mysql.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 PV 和 PVC 状态</span></span><br><span class="line">kubectl get pv</span><br><span class="line">kubectl get pvc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 预期输出</span></span><br><span class="line">NAME        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM</span><br><span class="line">pv-mysql    10Gi       RWO            Retain           Bound    default/pvc-mysql</span><br><span class="line"></span><br><span class="line">NAME        STATUS   VOLUME     CAPACITY   ACCESS MODES   STORAGECLASS</span><br><span class="line">pvc-mysql   Bound     pv-mysql   10Gi       RWO            nfs</span><br></pre></td></tr></table></figure>
+
+<p>现在即使 MySQL Pod 被删除重建，数据也会保留在 NFS 存储中。</p>
+<hr>
+<h2 id="六、常见问题与最佳实践"><a href="#六、常见问题与最佳实践" class="headerlink" title="六、常见问题与最佳实践"></a>六、常见问题与最佳实践</h2><h3 id="问题-1：PVC-一直处于-Pending-状态"><a href="#问题-1：PVC-一直处于-Pending-状态" class="headerlink" title="问题 1：PVC 一直处于 Pending 状态"></a>问题 1：PVC 一直处于 Pending 状态</h3><p><strong>原因：</strong></p>
+<ul>
+<li>没有满足条件的 PV 可用</li>
+<li>StorageClass 配置错误</li>
+<li>访问模式不匹配</li>
+</ul>
+<p><strong>解决：</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看 PVC 详细信息</span></span><br><span class="line">kubectl describe pvc pvc-mysql</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查事件</span></span><br><span class="line">kubectl get events --field-selector involvedObject.name=pvc-mysql</span><br></pre></td></tr></table></figure>
+
+<h3 id="问题-2：PV-被删除后数据丢失"><a href="#问题-2：PV-被删除后数据丢失" class="headerlink" title="问题 2：PV 被删除后数据丢失"></a>问题 2：PV 被删除后数据丢失</h3><p><strong>原因：</strong> <code>persistentVolumeReclaimPolicy</code> 设置为 <code>Delete</code></p>
+<p><strong>解决：</strong> 重要数据使用 <code>Retain</code> 策略</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">persistentVolumeReclaimPolicy:</span> <span class="string">Retain</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="问题-3：多节点读写需要什么存储？"><a href="#问题-3：多节点读写需要什么存储？" class="headerlink" title="问题 3：多节点读写需要什么存储？"></a>问题 3：多节点读写需要什么存储？</h3><p><strong>答案：</strong> 使用支持 <code>ReadWriteMany</code> 的存储，如 NFS、CephFS、GlusterFS</p>
+<h3 id="最佳实践清单"><a href="#最佳实践清单" class="headerlink" title="最佳实践清单"></a>最佳实践清单</h3><table>
+<thead>
+<tr>
+<th>实践</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>使用 StorageClass</td>
+<td>动态供应更灵活，无需手动创建 PV</td>
+</tr>
+<tr>
+<td>生产环境用 Retain</td>
+<td>防止误删 PVC 导致数据丢失</td>
+</tr>
+<tr>
+<td>合理设置容量</td>
+<td>宁可大一点，PVC 不能动态扩容（部分存储支持）</td>
+</tr>
+<tr>
+<td>备份数据</td>
+<td>PV 不是备份，定期备份到对象存储</td>
+</tr>
+<tr>
+<td>使用标签选择器</td>
+<td>精确匹配特定 PV</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="七、静态供应-vs-动态供应"><a href="#七、静态供应-vs-动态供应" class="headerlink" title="七、静态供应 vs 动态供应"></a>七、静态供应 vs 动态供应</h2><table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>静态供应</th>
+<th>动态供应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PV 创建</td>
+<td>管理员手动创建</td>
+<td>根据 StorageClass 自动创建</td>
+</tr>
+<tr>
+<td>灵活性</td>
+<td>低，需提前规划</td>
+<td>高，按需创建</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>测试、固定存储</td>
+<td>生产环境、云存储</td>
+</tr>
+<tr>
+<td>配置复杂度</td>
+<td>简单</td>
+<td>需配置 StorageClass 和 Provisioner</td>
+</tr>
+</tbody></table>
+<p>动态供应会在下一篇 StorageClass 中详细讲解。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>PV</strong> 是集群中的存储资源，<strong>PVC</strong> 是对存储的需求声明。它们通过绑定机制，将底层存储与 Pod 解耦，让应用无需关心存储的具体实现。</p>
+<p>记住三个核心流程：</p>
+<ol>
+<li><strong>创建 PV</strong>（或通过 StorageClass 自动创建）</li>
+<li><strong>创建 PVC</strong> 声明需求</li>
+<li><strong>Pod 通过 volumeClaim 引用 PVC</strong></li>
+</ol>
+<p>这样，你的有状态应用就能拥有真正的持久化存储能力，数据不再随着 Pod 的生命周期而消失。</p>
+<hr>
+<blockquote>
+<p>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef010cb7c0d5?w=1200&h=630&fit=crop">Unsplash</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+      </categories>
+      <tags>
+        <tag>Kubernetes</tag>
+        <tag>K8s</tag>
+        <tag>PV</tag>
+        <tag>PVC</tag>
+        <tag>存储</tag>
+      </tags>
+  </entry>
 </search>
