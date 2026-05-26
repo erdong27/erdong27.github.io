@@ -6,7 +6,7 @@
   <link href="https://erdong27.github.io/atom.xml" rel="self"/>
   
   <link href="https://erdong27.github.io/"/>
-  <updated>2026-05-25T00:36:42.854Z</updated>
+  <updated>2026-05-26T00:36:42.115Z</updated>
   <id>https://erdong27.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>StorageClass 动态存储供应</title>
+    <link href="https://erdong27.github.io/2026/05/26/2026-05-26-StorageClass%20%E5%8A%A8%E6%80%81%E5%AD%98%E5%82%A8%E4%BE%9B%E5%BA%94/"/>
+    <id>https://erdong27.github.io/2026/05/26/2026-05-26-StorageClass%20%E5%8A%A8%E6%80%81%E5%AD%98%E5%82%A8%E4%BE%9B%E5%BA%94/</id>
+    <published>2026-05-26T00:35:00.000Z</published>
+    <updated>2026-05-26T00:36:42.115Z</updated>
+    
+    
+    <summary type="html">&lt;h1 id=&quot;StorageClass-动态存储供应&quot;&gt;&lt;a href=&quot;#StorageClass-动态存储供应&quot; class=&quot;headerlink&quot; title=&quot;StorageClass 动态存储供应&quot;&gt;&lt;/a&gt;StorageClass 动态存储供应&lt;/h1&gt;&lt;p&gt;在 Kubernetes 中管理存储时，你可能会遇到这样的场景：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每次创建 PVC 都要手动创建 PV，太麻烦&lt;/li&gt;
+&lt;li&gt;不同应用需要不同性能的存储（SSD、HDD）&lt;/li&gt;
+&lt;li&gt;在云平台上，希望存储能随 Pod 自动创建和删除&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这时候，&lt;strong&gt;StorageClass&lt;/strong&gt; 就派上用场了。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="Kubernetes进阶" scheme="https://erdong27.github.io/categories/Kubernetes%E8%BF%9B%E9%98%B6/"/>
+    
+    
+    <category term="云原生" scheme="https://erdong27.github.io/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/"/>
+    
+    <category term="Kubernetes" scheme="https://erdong27.github.io/tags/Kubernetes/"/>
+    
+    <category term="存储" scheme="https://erdong27.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+    <category term="StorageClass" scheme="https://erdong27.github.io/tags/StorageClass/"/>
+    
+  </entry>
   
   <entry>
     <title>PV 与 PVC——持久化存储声明与供应</title>
@@ -648,38 +679,6 @@
     <category term="类加载" scheme="https://erdong27.github.io/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD/"/>
     
     <category term="双亲委派" scheme="https://erdong27.github.io/tags/%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>常见 OOM 场景分析与解决</title>
-    <link href="https://erdong27.github.io/2026/04/20/2026-04-20-%E5%B8%B8%E8%A7%81OOM%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/"/>
-    <id>https://erdong27.github.io/2026/04/20/2026-04-20-%E5%B8%B8%E8%A7%81OOM%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/</id>
-    <published>2026-04-20T10:00:00.000Z</published>
-    <updated>2026-04-20T01:38:08.086Z</updated>
-    
-    
-      
-      
-        
-        
-    <summary type="html">&lt;h2 id=&quot;版本说明&quot;&gt;&lt;a href=&quot;#版本说明&quot; class=&quot;headerlink&quot; title=&quot;版本说明&quot;&gt;&lt;/a&gt;版本说明&lt;/h2&gt;&lt;blockquote&gt;
-&lt;p&gt;⚠️</summary>
-        
-      
-    
-    
-    
-    <category term="JVM 性能优化" scheme="https://erdong27.github.io/categories/JVM-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
-    
-    
-    <category term="性能优化" scheme="https://erdong27.github.io/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
-    
-    <category term="JVM" scheme="https://erdong27.github.io/tags/JVM/"/>
-    
-    <category term="OOM" scheme="https://erdong27.github.io/tags/OOM/"/>
-    
-    <category term="故障排查" scheme="https://erdong27.github.io/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/"/>
     
   </entry>
   

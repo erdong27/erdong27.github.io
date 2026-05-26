@@ -9683,4 +9683,161 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>存储</tag>
       </tags>
   </entry>
+  <entry>
+    <title>StorageClass 动态存储供应</title>
+    <url>/2026/05/26/2026-05-26-StorageClass%20%E5%8A%A8%E6%80%81%E5%AD%98%E5%82%A8%E4%BE%9B%E5%BA%94/</url>
+    <content><![CDATA[<h1 id="StorageClass-动态存储供应"><a href="#StorageClass-动态存储供应" class="headerlink" title="StorageClass 动态存储供应"></a>StorageClass 动态存储供应</h1><p>在 Kubernetes 中管理存储时，你可能会遇到这样的场景：</p>
+<ul>
+<li>每次创建 PVC 都要手动创建 PV，太麻烦</li>
+<li>不同应用需要不同性能的存储（SSD、HDD）</li>
+<li>在云平台上，希望存储能随 Pod 自动创建和删除</li>
+</ul>
+<p>这时候，<strong>StorageClass</strong> 就派上用场了。</p>
+<span id="more"></span>
+
+<h2 id="什么是-StorageClass？"><a href="#什么是-StorageClass？" class="headerlink" title="什么是 StorageClass？"></a>什么是 StorageClass？</h2><p><strong>StorageClass（存储类）</strong> 是 Kubernetes 中用于定义<strong>存储配置文件</strong>的资源对象。它允许你：</p>
+<ol>
+<li><strong>动态创建 PV</strong>：当 PVC 请求存储时，自动创建对应的 PV</li>
+<li><strong>定义存储参数</strong>：比如存储类型、IOPS、回收策略等</li>
+<li><strong>对接不同存储后端</strong>：AWS EBS、GCE PD、Ceph RBD、NFS 等</li>
+</ol>
+<p>通俗地说，StorageClass 就像是一个<strong>存储菜单</strong>，你可以根据需求选择不同规格的存储，而无需手动准备每一份。</p>
+<h2 id="为什么需要-StorageClass？"><a href="#为什么需要-StorageClass？" class="headerlink" title="为什么需要 StorageClass？"></a>为什么需要 StorageClass？</h2><h3 id="传统方式的痛点"><a href="#传统方式的痛点" class="headerlink" title="传统方式的痛点"></a>传统方式的痛点</h3><p>在没有 StorageClass 之前，使用存储的流程是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">管理员手动创建 PV → 用户创建 PVC → 绑定 PV</span><br></pre></td></tr></table></figure>
+
+<p>这种方式有三个问题：</p>
+<ol>
+<li><strong>运维负担重</strong>：每个 PV 都要手动创建，100 个应用就要创建 100 个 PV</li>
+<li><strong>资源浪费</strong>：PV 是集群资源，提前创建多了浪费，少了不够用</li>
+<li><strong>无法按需定制</strong>：不同应用对存储性能要求不同，难以灵活配置</li>
+</ol>
+<h3 id="StorageClass-的优势"><a href="#StorageClass-的优势" class="headerlink" title="StorageClass 的优势"></a>StorageClass 的优势</h3><p>有了 StorageClass，流程变成：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">用户创建 PVC（指定 StorageClass） → 自动创建 PV → 绑定</span><br></pre></td></tr></table></figure>
+
+<p>优势：</p>
+<ul>
+<li><strong>自动化</strong>：无需手动创建 PV</li>
+<li><strong>按需供应</strong>：用到才创建，不浪费</li>
+<li><strong>参数化配置</strong>：通过 StorageClass 定义存储参数</li>
+</ul>
+<h2 id="StorageClass-的核心概念"><a href="#StorageClass-的核心概念" class="headerlink" title="StorageClass 的核心概念"></a>StorageClass 的核心概念</h2><p>一个 StorageClass 包含以下关键字段：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fast-ssd</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span>  <span class="comment"># 存储插件</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">gp3</span></span><br><span class="line">  <span class="attr">fsType:</span> <span class="string">ext4</span></span><br><span class="line"><span class="attr">reclaimPolicy:</span> <span class="string">Delete</span>  <span class="comment"># 删除 PVC 时是否删除 PV</span></span><br><span class="line"><span class="attr">allowVolumeExpansion:</span> <span class="literal">true</span>  <span class="comment"># 是否允许扩容</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">Immediate</span>  <span class="comment"># 绑定模式</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-provisioner（存储插件）"><a href="#1-provisioner（存储插件）" class="headerlink" title="1. provisioner（存储插件）"></a>1. provisioner（存储插件）</h3><p>这是最重要的字段，指定由哪个存储插件来创建 PV。</p>
+<p>常见的 provisioner：</p>
+<ul>
+<li><code>kubernetes.io/aws-ebs</code>（AWS）</li>
+<li><code>kubernetes.io/gce-pd</code>（GCP）</li>
+<li><code>kubernetes.io/azure-disk</code>（Azure）</li>
+<li><code>rox.default.svc.cluster.local</code>（Rook Ceph）</li>
+<li><code>nfs-client</code>（NFS）</li>
+</ul>
+<h3 id="2-parameters（参数）"><a href="#2-parameters（参数）" class="headerlink" title="2. parameters（参数）"></a>2. parameters（参数）</h3><p>传递给 provisioner 的参数，不同 provisioner 支持的参数不同。</p>
+<p>例如 AWS EBS：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">gp3</span>  <span class="comment"># 存储类型（gp2、gp3、io1 等）</span></span><br><span class="line">  <span class="attr">iops:</span> <span class="string">&quot;10000&quot;</span></span><br><span class="line">  <span class="attr">throughput:</span> <span class="string">&quot;400&quot;</span></span><br><span class="line">  <span class="attr">encrypted:</span> <span class="string">&quot;true&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-reclaimPolicy（回收策略）"><a href="#3-reclaimPolicy（回收策略）" class="headerlink" title="3. reclaimPolicy（回收策略）"></a>3. reclaimPolicy（回收策略）</h3><p>定义当 PVC 被删除时，PV 和底层存储如何处理：</p>
+<ul>
+<li><code>Delete</code>：删除 PVC 时，自动删除 PV 和底层存储（<strong>常用</strong>）</li>
+<li><code>Retain</code>：删除 PVC 时，保留 PV 和底层存储，需手动清理</li>
+</ul>
+<h3 id="4-allowVolumeExpansion（允许扩容）"><a href="#4-allowVolumeExpansion（允许扩容）" class="headerlink" title="4. allowVolumeExpansion（允许扩容）"></a>4. allowVolumeExpansion（允许扩容）</h3><p>是否允许扩容 PVC：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">allowVolumeExpansion:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>如果设置为 <code>true</code>，可以通过编辑 PVC 的 <code>resources.requests.storage</code> 字段来扩容。</p>
+<h3 id="5-volumeBindingMode（绑定模式）"><a href="#5-volumeBindingMode（绑定模式）" class="headerlink" title="5. volumeBindingMode（绑定模式）"></a>5. volumeBindingMode（绑定模式）</h3><p>控制 PV 的创建和绑定时机：</p>
+<ul>
+<li><code>Immediate</code>：创建 PVC 时立即创建 PV（<strong>默认</strong>）</li>
+<li><code>WaitForFirstConsumer</code>：延迟到 Pod 调度时再创建 PV（<strong>推荐用于本地存储</strong>）</li>
+</ul>
+<p><code>WaitForFirstConsumer</code> 的好处是：可以确保 PV 和 Pod 在同一个可用区。</p>
+<h2 id="实战：创建和使用-StorageClass"><a href="#实战：创建和使用-StorageClass" class="headerlink" title="实战：创建和使用 StorageClass"></a>实战：创建和使用 StorageClass</h2><h3 id="示例-1：本地-NFS-StorageClass"><a href="#示例-1：本地-NFS-StorageClass" class="headerlink" title="示例 1：本地 NFS StorageClass"></a>示例 1：本地 NFS StorageClass</h3><p>假设你有一个 NFS 服务器，想通过 StorageClass 动态供应存储。</p>
+<h4 id="步骤-1：安装-NFS-Client-Provisioner"><a href="#步骤-1：安装-NFS-Client-Provisioner" class="headerlink" title="步骤 1：安装 NFS Client Provisioner"></a>步骤 1：安装 NFS Client Provisioner</h4><p>使用 Helm 安装：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/</span><br><span class="line">helm install nfs-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \</span><br><span class="line">  --<span class="built_in">set</span> nfs.server=192.168.1.100 \</span><br><span class="line">  --<span class="built_in">set</span> nfs.path=/export/data</span><br></pre></td></tr></table></figure>
+
+<p>这会创建一个名为 <code>nfs-client</code> 的 StorageClass。</p>
+<h4 id="步骤-2：查看-StorageClass"><a href="#步骤-2：查看-StorageClass" class="headerlink" title="步骤 2：查看 StorageClass"></a>步骤 2：查看 StorageClass</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get sc</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">NAME            PROVISIONER      RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE</span><br><span class="line">nfs-client      nfs-client       Delete          Immediate           true                   5m</span><br><span class="line">standard (default)   kubernetes.io/aws-ebs   Delete    Immediate   true   1d</span><br></pre></td></tr></table></figure>
+
+<h4 id="步骤-3：创建-PVC"><a href="#步骤-3：创建-PVC" class="headerlink" title="步骤 3：创建 PVC"></a>步骤 3：创建 PVC</h4><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nfs-pvc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteMany</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs-client</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">10Gi</span></span><br></pre></td></tr></table></figure>
+
+<p>应用后，Kubernetes 会自动创建一个 PV，并绑定到这个 PVC。</p>
+<h4 id="步骤-4：在-Pod-中使用"><a href="#步骤-4：在-Pod-中使用" class="headerlink" title="步骤 4：在 Pod 中使用"></a>步骤 4：在 Pod 中使用</h4><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nfs-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">    <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">      <span class="attr">claimName:</span> <span class="string">nfs-pvc</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="示例-2：云平台-StorageClass（AWS-EBS）"><a href="#示例-2：云平台-StorageClass（AWS-EBS）" class="headerlink" title="示例 2：云平台 StorageClass（AWS EBS）"></a>示例 2：云平台 StorageClass（AWS EBS）</h3><p>在 AWS 上，你可以使用 AWS EBS 作为存储后端。</p>
+<h4 id="创建高性能-StorageClass"><a href="#创建高性能-StorageClass" class="headerlink" title="创建高性能 StorageClass"></a>创建高性能 StorageClass</h4><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ebs-gp3</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">gp3</span></span><br><span class="line">  <span class="attr">fsType:</span> <span class="string">ext4</span></span><br><span class="line">  <span class="attr">iops:</span> <span class="string">&quot;3000&quot;</span></span><br><span class="line">  <span class="attr">throughput:</span> <span class="string">&quot;125&quot;</span></span><br><span class="line"><span class="attr">reclaimPolicy:</span> <span class="string">Delete</span></span><br><span class="line"><span class="attr">allowVolumeExpansion:</span> <span class="literal">true</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="创建-PVC"><a href="#创建-PVC" class="headerlink" title="创建 PVC"></a>创建 PVC</h4><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ebs-pvc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">ebs-gp3</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">100Gi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="示例-3：本地存储-StorageClass"><a href="#示例-3：本地存储-StorageClass" class="headerlink" title="示例 3：本地存储 StorageClass"></a>示例 3：本地存储 StorageClass</h3><p>对于需要高性能本地存储的场景（比如数据库），可以使用本地磁盘。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">local-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/no-provisioner</span>  <span class="comment"># 不支持动态供应</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：本地存储通常需要手动创建 PV，因为 Kubernetes 无法自动发现节点上的可用磁盘。</p>
+<h2 id="多-StorageClass-场景"><a href="#多-StorageClass-场景" class="headerlink" title="多 StorageClass 场景"></a>多 StorageClass 场景</h2><p>在实际生产中，你可能会有多个 StorageClass，用于不同场景：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 高性能 SSD</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fast-ssd</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">io1</span></span><br><span class="line">  <span class="attr">iops:</span> <span class="string">&quot;10000&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 普通 HDD</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">standard-hdd</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">st1</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 冷数据归档</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cold-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">sc1</span></span><br></pre></td></tr></table></figure>
+
+<p>用户可以按需选择：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 数据库使用 SSD</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">db-data</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">fast-ssd</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">500Gi</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 日志使用 HDD</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">log-data</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">standard-hdd</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">2Ti</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="StorageClass-的默认行为"><a href="#StorageClass-的默认行为" class="headerlink" title="StorageClass 的默认行为"></a>StorageClass 的默认行为</h2><p>如果你没有在 PVC 中指定 <code>storageClassName</code>，Kubernetes 会使用<strong>默认的 StorageClass</strong>。</p>
+<p>查看默认 StorageClass：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get sc</span><br></pre></td></tr></table></figure>
+
+<p>带有 <code>(default)</code> 标记的就是默认 StorageClass。</p>
+<p>设置默认 StorageClass：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl patch storageclass standard -p <span class="string">&#x27;&#123;&quot;metadata&quot;: &#123;&quot;annotations&quot;:&#123;&quot;storageclass.kubernetes.io/is-default-class&quot;:&quot;true&quot;&#125;&#125;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常见问题与排查"><a href="#常见问题与排查" class="headerlink" title="常见问题与排查"></a>常见问题与排查</h2><h3 id="1-PVC-一直-Pending"><a href="#1-PVC-一直-Pending" class="headerlink" title="1. PVC 一直 Pending"></a>1. PVC 一直 Pending</h3><p><strong>原因</strong>：</p>
+<ul>
+<li>StorageClass 不存在</li>
+<li>Provisioner 配置错误</li>
+<li>存储后端不可用（比如 AWS API 限流）</li>
+</ul>
+<p><strong>排查</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl describe pvc &lt;pvc-name&gt;</span><br><span class="line">kubectl get events --sort-by=.metadata.creationTimestamp</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-PV-创建成功但无法挂载"><a href="#2-PV-创建成功但无法挂载" class="headerlink" title="2. PV 创建成功但无法挂载"></a>2. PV 创建成功但无法挂载</h3><p><strong>原因</strong>：</p>
+<ul>
+<li>节点无法访问存储后端（网络问题）</li>
+<li>权限不足（AWS IAM、Ceph 认证等）</li>
+</ul>
+<p><strong>排查</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl describe pv &lt;pv-name&gt;</span><br><span class="line">kubectl logs -l app=nfs-client-provisioner -n kube-system</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-删除-PVC-后存储未清理"><a href="#3-删除-PVC-后存储未清理" class="headerlink" title="3. 删除 PVC 后存储未清理"></a>3. 删除 PVC 后存储未清理</h3><p><strong>原因</strong>：</p>
+<ul>
+<li><code>reclaimPolicy</code> 设置为 <code>Retain</code></li>
+</ul>
+<p><strong>解决</strong>：<br>手动删除 PV 和底层存储。</p>
+<h2 id="最佳实践"><a href="#最佳实践" class="headerlink" title="最佳实践"></a>最佳实践</h2><ol>
+<li><strong>使用 WaitForFirstConsumer</strong>：对于云平台存储，避免 PV 和 Pod 不在同一个可用区</li>
+<li><strong>设置 allowVolumeExpansion: true</strong>：方便后续扩容</li>
+<li><strong>根据业务选择存储类型</strong>：数据库用 SSD，日志用 HDD，冷数据用归档存储</li>
+<li><strong>定期清理无用的 PV&#x2F;PVC</strong>：避免占用资源和成本</li>
+<li><strong>监控存储使用率</strong>：防止存储空间不足</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>StorageClass 是 Kubernetes 动态存储供应的核心组件，它通过抽象存储后端和参数化配置，让存储管理变得简单高效。</p>
+<p><strong>核心要点</strong>：</p>
+<ul>
+<li>StorageClass 定义了存储的”配方”</li>
+<li>PVC 通过 <code>storageClassName</code> 指定使用哪个 StorageClass</li>
+<li>Provisioner 根据 StorageClass 的配置自动创建 PV</li>
+<li>不同场景选择不同的 StorageClass（性能、成本、可用性）</li>
+</ul>
+<p>掌握 StorageClass，你的 K8s 存储管理就上了一个新台阶！</p>
+<hr>
+<p><strong>封面图片来源</strong>：<a href="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200">Unsplash</a></p>
+]]></content>
+      <categories>
+        <category>Kubernetes进阶</category>
+      </categories>
+      <tags>
+        <tag>云原生</tag>
+        <tag>Kubernetes</tag>
+        <tag>存储</tag>
+        <tag>StorageClass</tag>
+      </tags>
+  </entry>
 </search>
