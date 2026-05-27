@@ -9840,4 +9840,140 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>StorageClass</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Ingress 七层路由与域名配置</title>
+    <url>/2026/05/27/2026-05-27-Ingress%20%E4%B8%83%E5%B1%82%E8%B7%AF%E7%94%B1%E4%B8%8E%E5%9F%9F%E5%90%8D%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<h1 id="Ingress-七层路由与域名配置"><a href="#Ingress-七层路由与域名配置" class="headerlink" title="Ingress 七层路由与域名配置"></a>Ingress 七层路由与域名配置</h1><p>在前面几天的学习中，我们已经掌握了 Service 的三种类型：ClusterIP、NodePort 和 LoadBalancer。它们工作在 TCP/UDP 四层，能做端口转发，但有一个明显的短板——<strong>无法根据 HTTP 请求的域名、路径、Header 做智能路由</strong>。</p>
+<p>这正是 Ingress 登场的理由。</p>
+<h2 id="为什么需要-Ingress？"><a href="#为什么需要-Ingress？" class="headerlink" title="为什么需要 Ingress？"></a>为什么需要 Ingress？</h2><p>假设你的集群里跑着三个服务：</p>
+<ul>
+<li><code>api.example.com</code> → 后端 API 服务</li>
+<li><code>web.example.com</code> → 前端静态服务</li>
+<li><code>admin.example.com</code> → 管理后台服务</li>
+</ul>
+<p>如果用 NodePort/LoadBalancer，每个服务都要独占一个 IP 或端口，成本和复杂度都很高。而 Ingress 只需<strong>一个 LoadBalancer IP</strong>，就能根据域名和路径把流量分发到不同的 Service，像 Nginx 反向代理一样工作。</p>
+<blockquote>
+<p>Ingress 是 K8s 的七层（HTTP/HTTPS）流量入口，负责域名路由、路径匹配、TLS 终止等能力。</p>
+</blockquote>
+<h2 id="Ingress-架构：两件套"><a href="#Ingress-架构：两件套" class="headerlink" title="Ingress 架构：两件套"></a>Ingress 架构：两件套</h2><p>Ingress 的设计分为两部分：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ingress 资源</strong></td>
+<td>声明式配置（YAML），定义路由规则</td>
+</tr>
+<tr>
+<td><strong>Ingress Controller</strong></td>
+<td>实际执行路由的组件，负责读取 Ingress 规则并配置底层代理（如 Nginx）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Ingress 资源只是配置，Ingress Controller 才是干活的。</strong> 这点和 Deployment 与 kubelet 的关系类似。</p>
+<p>常见的 Ingress Controller 实现：</p>
+<ul>
+<li><strong>NGINX Ingress Controller</strong>（最流行，社区活跃）</li>
+<li>Traefik（配置简单，适合小集群）</li>
+<li>HAProxy Ingress</li>
+<li>Envoy-based（如 Contour、Emissary）</li>
+</ul>
+<p>以下示例以 NGINX Ingress Controller 为准。</p>
+<h2 id="安装-NGINX-Ingress-Controller"><a href="#安装-NGINX-Ingress-Controller" class="headerlink" title="安装 NGINX Ingress Controller"></a>安装 NGINX Ingress Controller</h2><p>Helm 一键安装（推荐）：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx</span><br><span class="line">helm install ingress-nginx ingress-nginx/ingress-nginx \</span><br><span class="line">  --namespace ingress-nginx --create-namespace</span><br></pre></td></tr></table></figure>
+<p>安装完成后，会有一个 <code>ingress-nginx-controller</code> 的 Service，类型通常是 LoadBalancer（云环境）或 NodePort（本地环境）。</p>
+<p>验证：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get svc -n ingress-nginx</span><br><span class="line"><span class="comment"># 看到 EXTERNAL-IP 或 NodePort 即成功</span></span><br></pre></td></tr></table></figure>
+<h2 id="基础示例：单域名路由"><a href="#基础示例：单域名路由" class="headerlink" title="基础示例：单域名路由"></a>基础示例：单域名路由</h2><p>假设集群里已有一个名为 <code>web-service</code> 的 Service，端口 80。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ingress-web.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">web-ingress</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ingressClassName:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">web.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">web-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+<p>提交后：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl apply -f ingress-web.yaml</span><br><span class="line">kubectl get ingress</span><br><span class="line"><span class="comment"># 等待 ADDRESS 列出现 IP/域名</span></span><br></pre></td></tr></table></figure>
+<p>此时访问 <code>http://web.example.com</code>（需把域名解析到 Ingress Controller 的 IP）就会转发到 <code>web-service:80</code>。</p>
+<h2 id="核心概念拆解"><a href="#核心概念拆解" class="headerlink" title="核心概念拆解"></a>核心概念拆解</h2><h3 id="host（域名）"><a href="#host（域名）" class="headerlink" title="host（域名）"></a>host（域名）</h3><p><code>host</code> 字段指定该规则匹配的域名。不填 <code>host</code> 则为<strong>默认后端</strong>，匹配所有未命中其他规则的请求。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span>   <span class="comment"># 只匹配 api.example.com</span></span><br><span class="line">    <span class="attr">http:</span> <span class="string">...</span></span><br><span class="line"><span class="comment"># 不写 host 的规则 → 默认捕获所有</span></span><br></pre></td></tr></table></figure>
+<h3 id="path-pathType（路径匹配）"><a href="#path-pathType（路径匹配）" class="headerlink" title="path / pathType（路径匹配）"></a>path / pathType（路径匹配）</h3><p><code>pathType</code> 有三个取值：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>pathType</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Prefix</code></td>
+<td>前缀匹配</td>
+<td><code>/api</code> 匹配 <code>/api/user</code>、<code>/api/v2/</code></td>
+</tr>
+<tr>
+<td><code>Exact</code></td>
+<td>精确匹配</td>
+<td><code>/health</code> 只匹配 <code>/health</code></td>
+</tr>
+<tr>
+<td><code>ImplementationSpecific</code></td>
+<td>由 Controller 决定（NGINX 默认同 Prefix）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>注意</strong>：<code>/api</code> 的 Prefix 匹配<strong>不包含</strong> <code>/api/</code>（末尾有无斜杠有区别），实际使用中建议显式写两条规则或统一路径规范。</p>
+</blockquote>
+<h3 id="backend（后端-Service）"><a href="#backend（后端-Service）" class="headerlink" title="backend（后端 Service）"></a>backend（后端 Service）</h3><p>每个 path 都要指定一个后端 Service 及端口，Ingress Controller 会把匹配到的流量转发过去。</p>
+<h2 id="多域名-多路径配置"><a href="#多域名-多路径配置" class="headerlink" title="多域名 + 多路径配置"></a>多域名 + 多路径配置</h2><p>一个 Ingress 可以同时配置多个域名和路径：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">multi-ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ingressClassName:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/v1</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">api-v1-svc</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/v2</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">api-v2-svc</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">web.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">web-svc</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+<p>这样，同一个 Ingress Controller 入口，根据 <code>Host</code> 头 + 路径，把流量精准分发到不同服务。</p>
+<h2 id="路径匹配优先级（NGINX）"><a href="#路径匹配优先级（NGINX）" class="headerlink" title="路径匹配优先级（NGINX）"></a>路径匹配优先级（NGINX）</h2><p>当多个路径都能匹配时，NGINX Ingress Controller 按以下规则决定优先级：</p>
+<ol>
+<li><strong>最长前缀优先</strong> — <code>/api/v2</code> 比 <code>/api</code> 优先</li>
+<li><strong>Exact 优先于 Prefix</strong></li>
+<li>同长度时按配置文件中的顺序（不保证，勿依赖）</li>
+</ol>
+<p>最佳实践：<strong>避免模糊的交叉路径</strong>，保持路由规则清晰可预测。</p>
+<h2 id="健康检查与默认后端"><a href="#健康检查与默认后端" class="headerlink" title="健康检查与默认后端"></a>健康检查与默认后端</h2><p>Ingress 可以配置一个「默认后端」，处理所有未匹配任何规则的请求（常用于返回 404 页面）：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 在 metadata.annotations 中配置（NGINX 特有能力）</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/default-backend:</span> <span class="string">custom-404-service</span></span><br></pre></td></tr></table></figure>
+<p>或者在 Ingress 的 <code>spec.defaultBackend</code> 中配置全局默认后端：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">defaultBackend:</span></span><br><span class="line">    <span class="attr">service:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">default-http-backend</span></span><br><span class="line">      <span class="attr">port:</span></span><br><span class="line">        <span class="attr">number:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+<h2 id="常见问题排查"><a href="#常见问题排查" class="headerlink" title="常见问题排查"></a>常见问题排查</h2><h3 id="1-Ingress-ADDRESS-一直为空"><a href="#1-Ingress-ADDRESS-一直为空" class="headerlink" title="1. Ingress ADDRESS 一直为空"></a>1. Ingress ADDRESS 一直为空</h3><p>通常是因为 Ingress Controller 没有正常运行，或者 Service 类型不是 LoadBalancer（本地环境需等 NodePort 分配）。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get pods -n ingress-nginx</span><br><span class="line">kubectl logs -n ingress-nginx &lt;controller-pod-name&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="2-域名访问不通"><a href="#2-域名访问不通" class="headerlink" title="2. 域名访问不通"></a>2. 域名访问不通</h3><p>依次排查：</p>
+<ol>
+<li>域名 DNS 是否解析到 Ingress Controller 的 IP</li>
+<li>Ingress 规则的 <code>host</code> 是否与访问域名一致</li>
+<li>后端 Service 是否正常（<code>kubectl port-forward</code> 直连验证）</li>
+<li>Ingress Controller 日志是否有报错</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl describe ingress &lt;ingress-name&gt;</span><br><span class="line"><span class="comment"># 查看 Events 栏</span></span><br></pre></td></tr></table></figure>
+<h3 id="3-路径匹配不符合预期"><a href="#3-路径匹配不符合预期" class="headerlink" title="3. 路径匹配不符合预期"></a>3. 路径匹配不符合预期</h3><p>检查 <code>pathType</code>，确认是否需要末尾斜杠，用 <code>curl -v</code> 观察实际请求路径。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ul>
+<li>Ingress 是 K8s 的七层流量入口，解决 Service 无法做域名/路径路由的问题</li>
+<li>架构分两半：<strong>Ingress 资源</strong>（配置）+ <strong>Ingress Controller</strong>（执行）</li>
+<li>核心配置字段：<code>host</code>（域名）、<code>path</code>/<code>pathType</code>（路径匹配）、<code>backend</code>（目标 Service）</li>
+<li>一个 Ingress 支持多域名、多路径，适合统一入口管理</li>
+</ul>
+<p>下一篇将深入 Ingress 的高级配置：TLS 证书、路径重写、限流限速。</p>
+<hr>
+<p><em>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&amp;q=80">Unsplash</a></em></p>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+        <category>深入浅出K8s</category>
+      </categories>
+      <tags>
+        <tag>Kubernetes</tag>
+        <tag>Ingress</tag>
+        <tag>网络</tag>
+        <tag>七层路由</tag>
+      </tags>
+  </entry>
 </search>
