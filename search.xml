@@ -9976,4 +9976,212 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>七层路由</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Ingress 高级配置（TLS、重写、限流）</title>
+    <url>/2026/05/28/2026-05-28-Ingress%20%E9%AB%98%E7%BA%A7%E9%85%8D%E7%BD%AE%EF%BC%88TLS%E3%80%81%E9%87%8D%E5%86%99%E3%80%81%E9%99%90%E6%B5%81%EF%BC%89/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>上一篇我们讲了 Ingress 的基础用法——域名路由、路径匹配。但实际生产环境中，光有基础路由远远不够。你需要 HTTPS 加密、需要把用户无感地从一个路径跳到另一个路径、还需要防止某个恶意调用把你的服务打挂。</p>
+<p>这些就是 Ingress 的高级配置能力。本文用 Nginx Ingress Controller 为例，讲清楚 TLS、重写（Rewrite）、限流（Rate Limiting）三个最常用的高级特性。</p>
+<hr>
+<h2 id="一、TLS-配置——给服务加上-HTTPS"><a href="#一、TLS-配置——给服务加上-HTTPS" class="headerlink" title="一、TLS 配置——给服务加上 HTTPS"></a>一、TLS 配置——给服务加上 HTTPS</h2><h3 id="为什么需要-TLS"><a href="#为什么需要-TLS" class="headerlink" title="为什么需要 TLS"></a>为什么需要 TLS</h3><p>HTTP 是明文传输，任何中间人都能截获你的请求内容。生产环境必须有 TLS（HTTPS），否则：</p>
+<ul>
+<li>用户密码、Token 明文暴露</li>
+<li>浏览器标记站点为”不安全”</li>
+<li>合规过不了（等保、PCI-DSS 都要求 HTTPS）</li>
+</ul>
+<h3 id="基本流程"><a href="#基本流程" class="headerlink" title="基本流程"></a>基本流程</h3><p>K8s 中 TLS 的配置分两步：</p>
+<ol>
+<li>把证书和私钥存进 <strong>Secret</strong></li>
+<li>Ingress 资源引用这个 Secret</li>
+</ol>
+<h3 id="创建-TLS-Secret"><a href="#创建-TLS-Secret" class="headerlink" title="创建 TLS Secret"></a>创建 TLS Secret</h3><p>假设你已经有证书文件 <code>tls.crt</code> 和私钥 <code>tls.key</code>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create secret tls blog-tls \</span><br><span class="line">  --cert=tls.crt \</span><br><span class="line">  --key=tls.key \</span><br><span class="line">  -n default</span><br></pre></td></tr></table></figure>
+
+<p>如果是 Let’s Encrypt 等 CA 签发的证书，直接把 fullchain 放 <code>tls.crt</code>，私钥放 <code>tls.key</code> 即可。</p>
+<h3 id="Ingress-配置-TLS"><a href="#Ingress-配置-TLS" class="headerlink" title="Ingress 配置 TLS"></a>Ingress 配置 TLS</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">blog-ingress</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">tls:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">blog.example.com</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">blog-tls</span>    <span class="comment"># 引用上面创建的 Secret</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">blog.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">blog-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>部署后，访问 <code>http://blog.example.com</code> 会自动跳转到 <code>https://blog.example.com</code>（Nginx Ingress 默认行为）。</p>
+<h3 id="自动续期：cert-manager"><a href="#自动续期：cert-manager" class="headerlink" title="自动续期：cert-manager"></a>自动续期：cert-manager</h3><p>手动更新证书太麻烦，生产环境一般用 <strong>cert-manager</strong> 自动申请和续期 Let’s Encrypt 证书。</p>
+<p>核心思路：</p>
+<ol>
+<li>安装 cert-manager</li>
+<li>创建 <code>ClusterIssuer</code>（定义证书颁发机构）</li>
+<li>Ingress 加注解自动触发证书申请</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">blog-ingress</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">cert-manager.io/cluster-issuer:</span> <span class="string">&quot;letsencrypt-prod&quot;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">tls:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">blog.example.com</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">blog-tls-auto</span>    <span class="comment"># cert-manager 会自动创建这个 Secret</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">blog.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">blog-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>cert-manager 检测到这个 Ingress 后，会自动：</p>
+<ul>
+<li>向 Let’s Encrypt 发起 ACME 挑战</li>
+<li>验证域名所有权</li>
+<li>获取证书并存入 <code>blog-tls-auto</code> Secret</li>
+<li>证书快过期时自动续期</li>
+</ul>
+<hr>
+<h2 id="二、重写（Rewrite）——无感路径跳转"><a href="#二、重写（Rewrite）——无感路径跳转" class="headerlink" title="二、重写（Rewrite）——无感路径跳转"></a>二、重写（Rewrite）——无感路径跳转</h2><h3 id="什么是重写"><a href="#什么是重写" class="headerlink" title="什么是重写"></a>什么是重写</h3><p>重写是指：<strong>用户访问的路径</strong> 和 <strong>后端服务实际收到的路径</strong> 不一样，Ingress 在转发时帮你做路径转换。</p>
+<p>典型场景：</p>
+<table>
+<thead>
+<tr>
+<th>用户访问路径</th>
+<th>后端服务实际路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/api/users</code></td>
+<td><code>/users</code></td>
+<td>去掉前缀</td>
+</tr>
+<tr>
+<td><code>/v1/orders</code></td>
+<td><code>/api/orders</code></td>
+<td>路径映射</td>
+</tr>
+<tr>
+<td><code>/old-path</code></td>
+<td><code>/new-path</code></td>
+<td>旧路径迁移</td>
+</tr>
+</tbody></table>
+<h3 id="注解方式配置重写"><a href="#注解方式配置重写" class="headerlink" title="注解方式配置重写"></a>注解方式配置重写</h3><p>Nginx Ingress 通过注解控制重写行为：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">api-ingress</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">/$2</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/api(/|$)(.*)</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">api-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键点解释：</strong></p>
+<ul>
+<li><code>path: /api(/|$)(.*)</code> —— 正则捕获组，<code>(.*)</code> 捕获 <code>/api/</code> 后面的所有内容</li>
+<li><code>rewrite-target: /$2</code> —— <code>$2</code> 对应第二个捕获组，即 <code>(.*)</code> 匹配的内容</li>
+<li>用户访问 <code>/api/users/list</code> → 后端收到 <code>/users/list</code></li>
+</ul>
+<h3 id="实际例子：去掉-API-版本前缀"><a href="#实际例子：去掉-API-版本前缀" class="headerlink" title="实际例子：去掉 API 版本前缀"></a>实际例子：去掉 API 版本前缀</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 用户访问 /v2/products，后端实际路径是 /products</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">version-rewrite</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">/$2</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/v2(/|$)(.*)</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">product-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="App-Root-配置"><a href="#App-Root-配置" class="headerlink" title="App Root 配置"></a>App Root 配置</h3><p>有时候后端服务有上下文路径（比如 Spring Boot 设了 <code>server.servlet.context-path=/app</code>），但用户想直接通过 <code>/</code> 访问。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/app-root:</span> <span class="string">/app</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">/app</span></span><br></pre></td></tr></table></figure>
+
+<p>访问 <code>/</code> 时，Nginx 返回 302 重定向到 <code>/app</code>。</p>
+<hr>
+<h2 id="三、限流（Rate-Limiting）——保护后端不被打挂"><a href="#三、限流（Rate-Limiting）——保护后端不被打挂" class="headerlink" title="三、限流（Rate Limiting）——保护后端不被打挂"></a>三、限流（Rate Limiting）——保护后端不被打挂</h2><h3 id="为什么需要限流"><a href="#为什么需要限流" class="headerlink" title="为什么需要限流"></a>为什么需要限流</h3><p>没有限流，以下场景会直接搞垮你的服务：</p>
+<ul>
+<li>某个爬虫疯狂请求你的 API</li>
+<li>客户端 bug 导致死循环调用</li>
+<li>DDoS 攻击</li>
+<li>突发流量超过后端处理能力</li>
+</ul>
+<p>限流的核心思想：<strong>超过阈值的请求直接拒绝，保护后端稳定性。</strong></p>
+<h3 id="Nginx-Ingress-限流原理"><a href="#Nginx-Ingress-限流原理" class="headerlink" title="Nginx Ingress 限流原理"></a>Nginx Ingress 限流原理</h3><p>Nginx 的限流基于<strong>漏桶算法</strong>（Leaky Bucket），本质是：</p>
+<ul>
+<li>请求进来，先检查是否超过速率限制</li>
+<li>超过则返回 503（默认）</li>
+<li>未超过则放行</li>
+</ul>
+<h3 id="基础限流配置"><a href="#基础限流配置" class="headerlink" title="基础限流配置"></a>基础限流配置</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">rate-limited-ingress</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="comment"># 每秒最多 10 个请求</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-rps:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">    <span class="comment"># 突发允许最多 20 个请求排队</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-burst-multiplier:</span> <span class="string">&quot;2&quot;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">api-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="常用限流注解"><a href="#常用限流注解" class="headerlink" title="常用限流注解"></a>常用限流注解</h3><table>
+<thead>
+<tr>
+<th>注解</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>limit-rps</code></td>
+<td>每秒请求数</td>
+<td><code>&quot;10&quot;</code> &#x3D; 10 req&#x2F;s</td>
+</tr>
+<tr>
+<td><code>limit-rpm</code></td>
+<td>每分钟请求数</td>
+<td><code>&quot;100&quot;</code> &#x3D; 100 req&#x2F;min</td>
+</tr>
+<tr>
+<td><code>limit-burst-multiplier</code></td>
+<td>突发倍数</td>
+<td><code>&quot;2&quot;</code> &#x3D; 允许 2 倍突发</td>
+</tr>
+<tr>
+<td><code>limit-whitelist</code></td>
+<td>白名单 CIDR</td>
+<td><code>&quot;10.0.0.0/8,192.168.0.0/16&quot;</code></td>
+</tr>
+<tr>
+<td><code>limit-connections</code></td>
+<td>并发连接数限制</td>
+<td><code>&quot;50&quot;</code></td>
+</tr>
+</tbody></table>
+<h3 id="按客户端-IP-限流"><a href="#按客户端-IP-限流" class="headerlink" title="按客户端 IP 限流"></a>按客户端 IP 限流</h3><p>生产环境通常希望<strong>每个用户独立限流</strong>，而不是全局共享一个限额。</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-rps:</span> <span class="string">&quot;5&quot;</span></span><br><span class="line">    <span class="comment"># 按 X-Forwarded-For 识别真实客户端 IP</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/configuration-snippet:</span> <span class="string">|</span></span><br><span class="line">      <span class="string">limit_req_zone</span> <span class="string">$http_x_forwarded_for</span> <span class="string">zone=perip:10m</span> <span class="string">rate=5r/s;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="白名单：内部服务跳过限流"><a href="#白名单：内部服务跳过限流" class="headerlink" title="白名单：内部服务跳过限流"></a>白名单：内部服务跳过限流</h3><p>内部服务调用（比如从 10.0.0.0&#x2F;8 来的请求）通常不需要限流：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-rps:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/whitelist-source-range:</span> <span class="string">&quot;10.0.0.0/8,192.168.0.0/16,127.0.0.1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>白名单内的 IP 不受限流影响。</p>
+<h3 id="限流返回自定义状态码"><a href="#限流返回自定义状态码" class="headerlink" title="限流返回自定义状态码"></a>限流返回自定义状态码</h3><p>默认限流返回 503，有些客户端对 503 的处理不符合预期，可以改成 429（Too Many Requests）：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/configuration-snippet:</span> <span class="string">|</span></span><br><span class="line">      <span class="string">limit_req_status</span> <span class="number">429</span><span class="string">;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、组合实战：一个完整的生产级-Ingress"><a href="#四、组合实战：一个完整的生产级-Ingress" class="headerlink" title="四、组合实战：一个完整的生产级 Ingress"></a>四、组合实战：一个完整的生产级 Ingress</h2><p>把 TLS、重写、限流组合在一起：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">production-api-ingress</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">production</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="comment"># TLS 自动申请（cert-manager）</span></span><br><span class="line">    <span class="attr">cert-manager.io/cluster-issuer:</span> <span class="string">&quot;letsencrypt-prod&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 重写：去掉 /v2 前缀</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">/$2</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 限流：每秒 20 请求，突发 40</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-rps:</span> <span class="string">&quot;20&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/limit-burst-multiplier:</span> <span class="string">&quot;2&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 白名单：内网不限流</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/whitelist-source-range:</span> <span class="string">&quot;10.0.0.0/8,192.168.0.0/16&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 超时配置</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/proxy-read-timeout:</span> <span class="string">&quot;60&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/proxy-send-timeout:</span> <span class="string">&quot;60&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># CORS（如果需要）</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/enable-cors:</span> <span class="string">&quot;true&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/cors-allow-origin:</span> <span class="string">&quot;https://www.example.com&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">tls:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">api-tls-auto</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">api.example.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/v2(/|$)(.*)</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">api-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/health</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Exact</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">health-service</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、调试技巧"><a href="#五、调试技巧" class="headerlink" title="五、调试技巧"></a>五、调试技巧</h2><h3 id="查看-Ingress-状态"><a href="#查看-Ingress-状态" class="headerlink" title="查看 Ingress 状态"></a>查看 Ingress 状态</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get ingress -n production</span><br><span class="line">kubectl describe ingress production-api-ingress -n production</span><br></pre></td></tr></table></figure>
+
+<p><code>describe</code> 输出的 <code>Events</code>  section 会告诉你配置是否生效，证书是否申请成功。</p>
+<h3 id="查看-Nginx-实际生成的配置"><a href="#查看-Nginx-实际生成的配置" class="headerlink" title="查看 Nginx 实际生成的配置"></a>查看 Nginx 实际生成的配置</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 找到 ingress-nginx-controller 的 Pod</span></span><br><span class="line">kubectl get pods -n ingress-nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看实际生成的 nginx.conf（只看某个 host 的配置）</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -n ingress-nginx &lt;controller-pod&gt; -- <span class="built_in">cat</span> /etc/nginx/nginx.conf | grep -A 50 <span class="string">&quot;api.example.com&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果配置没生效，通常是：</p>
+<ol>
+<li>注解名称写错（大小写敏感）</li>
+<li>Ingress Class 不匹配</li>
+<li>Secret 不存在或格式错误</li>
+</ol>
+<h3 id="测试限流是否生效"><a href="#测试限流是否生效" class="headerlink" title="测试限流是否生效"></a>测试限流是否生效</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 快速发 100 个请求，看有多少返回 503/429</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> $(<span class="built_in">seq</span> 1 100); <span class="keyword">do</span></span><br><span class="line">  curl -s -o /dev/null -w <span class="string">&quot;%&#123;http_code&#125;\n&quot;</span> https://api.example.com/v2/users</span><br><span class="line"><span class="keyword">done</span> | <span class="built_in">sort</span> | <span class="built_in">uniq</span> -c</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>核心注解 &#x2F; 配置</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TLS</td>
+<td><code>tls</code> 字段 + cert-manager</td>
+<td>HTTPS 加密</td>
+</tr>
+<tr>
+<td>重写</td>
+<td><code>rewrite-target</code> + 正则 path</td>
+<td>路径映射、前缀去除</td>
+</tr>
+<tr>
+<td>限流</td>
+<td><code>limit-rps</code> &#x2F; <code>limit-rpm</code></td>
+<td>防爬虫、防 DDoS</td>
+</tr>
+<tr>
+<td>白名单</td>
+<td><code>whitelist-source-range</code></td>
+<td>内网跳过限流</td>
+</tr>
+</tbody></table>
+<p>这三个能力是生产环境 Ingress 配置的标配。TLS 保证安全，重写保证路径灵活，限流保证稳定。掌握这三个，你的 Ingress 配置就能应对大部分生产场景了。</p>
+<blockquote>
+<p><strong>封面来源：</strong> <a href="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80">Unsplash - Cloudflare</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Kubernetes</category>
+        <category>进阶</category>
+      </categories>
+      <tags>
+        <tag>限流</tag>
+        <tag>Kubernetes</tag>
+        <tag>Ingress</tag>
+        <tag>TLS</tag>
+        <tag>运维</tag>
+      </tags>
+  </entry>
 </search>
