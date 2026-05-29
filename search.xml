@@ -10184,4 +10184,158 @@ Spring Boot  并发编程    JVM 优化   分布式中间件  架构演进
         <tag>运维</tag>
       </tags>
   </entry>
+  <entry>
+    <title>HPA 水平自动扩缩容实战</title>
+    <url>/2026/05/29/2026-05-29-HPA-%E6%B0%B4%E5%B9%B3%E8%87%AA%E5%8A%A8%E6%89%A9%E7%BC%A9%E5%AE%B9%E5%AE%9E%E6%88%98/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>你有没有遇到过这种场景：半夜凌晨业务量暴涨，Pod 全部扛不住，服务大面积超时；又或者白天流量平稳，集群里跑了一堆闲置的 Pod，白白浪费资源。</p>
+<p>手动去调整副本数？不现实。你需要一个能根据负载自动调整 Pod 数量的机制——这就是 <strong>HPA（Horizontal Pod Autoscaler，水平 Pod 自动扩缩容）</strong>。</p>
+<p>今天我们就来实战一下 HPA，搞懂它的原理、配置方法，以及在生产环境中的注意事项。</p>
+<h2 id="HPA-是什么"><a href="#HPA-是什么" class="headerlink" title="HPA 是什么"></a>HPA 是什么</h2><p>HPA 是 Kubernetes 内置的一个控制器，它的职责很简单：<strong>根据监控指标自动调整 Deployment、ReplicaSet、StatefulSet 等工作负载的副本数量</strong>。</p>
+<p>所谓”水平”扩缩容，指的是通过增减 Pod 副本数来应对流量变化，而不是升级单个 Pod 的资源（那是”垂直”扩缩容，Vertical Pod Autoscaler，简称 VPA）。</p>
+<h3 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h3><p>HPA 的控制循环大致如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">每隔一段时间（默认 15 秒）</span><br><span class="line">  → 采集目标指标（CPU、内存、自定义指标）</span><br><span class="line">  → 计算期望副本数 = 当前指标值 / 目标指标值</span><br><span class="line">  → 如果计算出的副本数与当前副本数不同</span><br><span class="line">    → 调整副本数（扩容或缩容）</span><br></pre></td></tr></table></figure>
+
+<p>用一个简单公式理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">期望副本数 = ceil(当前副本数 × (当前指标值 / 目标指标值))</span><br></pre></td></tr></table></figure>
+
+<p>举个例子：你有 2 个 Pod，目标 CPU 使用率设为 50%，当前实际 CPU 使用率是 80%：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">期望副本数 = ceil(2 × 80% / 50%) = ceil(3.2) = 4</span><br></pre></td></tr></table></figure>
+
+<p>HPA 会把副本数从 2 扩到 4。</p>
+<h2 id="前置条件"><a href="#前置条件" class="headerlink" title="前置条件"></a>前置条件</h2><p>要让 HPA 正常工作，你的集群需要具备以下条件：</p>
+<ol>
+<li><strong>Metrics Server 已安装</strong>——这是必须的，HPA 需要通过它获取 Pod 的 CPU 和内存指标。</li>
+<li><strong>Pod 配置了资源 requests</strong>——HPA 计算百分比时需要这个基准值。</li>
+<li><strong>工作负载控制器</strong>——目前支持 Deployment、ReplicaSet、StatefulSet、ReplicationController。</li>
+</ol>
+<h3 id="安装-Metrics-Server"><a href="#安装-Metrics-Server" class="headerlink" title="安装 Metrics Server"></a>安装 Metrics Server</h3><p>大多数集群默认没有安装 Metrics Server，需要手动部署：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 添加 Metrics Server 的 Helm 仓库</span></span><br><span class="line">helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/</span><br><span class="line">helm repo update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装（推荐使用 Helm）</span></span><br><span class="line">helm upgrade --install metrics-server metrics-server/metrics-server \</span><br><span class="line">  --namespace kube-system \</span><br><span class="line">  --<span class="built_in">set</span> args[0]=--kubelet-preferred-address-types=InternalIP</span><br></pre></td></tr></table></figure>
+
+<p>安装完成后，验证一下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl top nodes</span><br><span class="line">kubectl top pods -n kube-system</span><br></pre></td></tr></table></figure>
+
+<p>如果能看到 CPU 和内存数据，说明 Metrics Server 工作正常。</p>
+<h2 id="基础实战：基于-CPU-的-HPA"><a href="#基础实战：基于-CPU-的-HPA" class="headerlink" title="基础实战：基于 CPU 的 HPA"></a>基础实战：基于 CPU 的 HPA</h2><p>我们先从一个最简单的例子开始——根据 CPU 使用率自动扩缩容。</p>
+<h3 id="部署示例应用"><a href="#部署示例应用" class="headerlink" title="部署示例应用"></a>部署示例应用</h3><p>创建一个 Nginx Deployment，并配置资源 requests：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hpa-demo</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hpa-demo</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">hpa-demo</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">nginx:latest</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">100m</span>    <span class="comment"># 0.1 核，这是 HPA 计算的基准</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">128Mi</span></span><br><span class="line">        <span class="comment"># 这里不用压测工具，用一个能吃 CPU 的镜像</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">registry.k8s.io/stress:v1</span></span><br><span class="line">        <span class="attr">command:</span> [<span class="string">&quot;stress&quot;</span>]</span><br><span class="line">        <span class="attr">args:</span> [<span class="string">&quot;--cpu&quot;</span>, <span class="string">&quot;1&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：这里用 stress 镜像来模拟 CPU 负载。在实际生产中，你的业务应用自然会产生 CPU 负载。</p>
+</blockquote>
+<p>部署：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl apply -f hpa-demo.yaml</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建-HPA-策略"><a href="#创建-HPA-策略" class="headerlink" title="创建 HPA 策略"></a>创建 HPA 策略</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl autoscale deployment hpa-demo \</span><br><span class="line">  --cpu-percent=50 \</span><br><span class="line">  --min=2 \</span><br><span class="line">  --max=10 \</span><br><span class="line">  --namespace default</span><br></pre></td></tr></table></figure>
+
+<p>这条命令的含义：</p>
+<ul>
+<li><code>--cpu-percent=50</code>：目标 CPU 使用率为 50%</li>
+<li><code>--min=2</code>：最少保留 2 个副本</li>
+<li><code>--max=10</code>：最多扩到 10 个副本</li>
+</ul>
+<p>查看 HPA 状态：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get hpa</span><br></pre></td></tr></table></figure>
+
+<p>输出示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">NAME       REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE</span><br><span class="line">hpa-demo   Deployment/hpa-demo   50%/50%   2         10        2          1m</span><br></pre></td></tr></table></figure>
+
+<p><code>TARGETS</code> 列显示 <code>当前值/目标值</code>，当当前值持续超过目标值，HPA 就会触发扩容。</p>
+<h3 id="用-YAML-创建-HPA"><a href="#用-YAML-创建-HPA" class="headerlink" title="用 YAML 创建 HPA"></a>用 YAML 创建 HPA</h3><p>命令行方式比较直观，但在生产环境我们更推荐用 YAML 文件管理：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hpa-demo</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">hpa-demo</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="number">10</span></span><br><span class="line">  <span class="attr">metrics:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">50</span></span><br><span class="line">  <span class="attr">behavior:</span></span><br><span class="line">    <span class="attr">scaleUp:</span></span><br><span class="line">      <span class="attr">stabilizationWindowSeconds:</span> <span class="number">30</span></span><br><span class="line">      <span class="attr">policies:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">        <span class="attr">value:</span> <span class="number">4</span></span><br><span class="line">        <span class="attr">periodSeconds:</span> <span class="number">60</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Percent</span></span><br><span class="line">        <span class="attr">value:</span> <span class="number">100</span></span><br><span class="line">        <span class="attr">periodSeconds:</span> <span class="number">60</span></span><br><span class="line">      <span class="attr">selectPolicy:</span> <span class="string">Max</span></span><br><span class="line">    <span class="attr">scaleDown:</span></span><br><span class="line">      <span class="attr">stabilizationWindowSeconds:</span> <span class="number">300</span></span><br><span class="line">      <span class="attr">policies:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">        <span class="attr">value:</span> <span class="number">2</span></span><br><span class="line">        <span class="attr">periodSeconds:</span> <span class="number">120</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="进阶实战：多指标与自定义指标"><a href="#进阶实战：多指标与自定义指标" class="headerlink" title="进阶实战：多指标与自定义指标"></a>进阶实战：多指标与自定义指标</h2><p>真实生产环境中，单靠 CPU 是不够的。你可能还需要考虑内存、QPS、自定义业务指标等。</p>
+<h3 id="基于内存的-HPA"><a href="#基于内存的-HPA" class="headerlink" title="基于内存的 HPA"></a>基于内存的 HPA</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metrics:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">  <span class="attr">resource:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">    <span class="attr">target:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">AverageValue</span></span><br><span class="line">      <span class="attr">averageValue:</span> <span class="string">200Mi</span></span><br></pre></td></tr></table></figure>
+
+<p>注意区别：CPU 通常用 <code>Utilization</code>（百分比），内存通常用 <code>AverageValue</code>（绝对值）。这是因为内存使用率高不代表需要扩容——可能应用本身就占用了大量内存用于缓存，但并不影响服务能力。</p>
+<h3 id="多指标组合"><a href="#多指标组合" class="headerlink" title="多指标组合"></a>多指标组合</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metrics:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">  <span class="attr">resource:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">    <span class="attr">target:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">Utilization</span></span><br><span class="line">      <span class="attr">averageUtilization:</span> <span class="number">50</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">  <span class="attr">resource:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">    <span class="attr">target:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">AverageValue</span></span><br><span class="line">      <span class="attr">averageValue:</span> <span class="string">200Mi</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">  <span class="attr">pods:</span></span><br><span class="line">    <span class="attr">metric:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">http_requests_per_second</span></span><br><span class="line">    <span class="attr">target:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">AverageValue</span></span><br><span class="line">      <span class="attr">averageValue:</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
+
+<p>HPA 会分别计算每个指标所需的副本数，然后<strong>取最大值</strong>作为最终目标。也就是说，任何一个指标触发扩容条件，都会执行扩容。</p>
+<h3 id="自定义指标"><a href="#自定义指标" class="headerlink" title="自定义指标"></a>自定义指标</h3><p>要使用自定义指标（如 QPS、队列深度等），需要额外安装 <strong>Prometheus Adapter</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts</span><br><span class="line">helm upgrade --install prometheus-adapter prometheus-community/prometheus-adapter \</span><br><span class="line">  --namespace monitoring \</span><br><span class="line">  --<span class="built_in">set</span> prometheus.url=http://prometheus-server.monitoring.svc.cluster.local</span><br></pre></td></tr></table></figure>
+
+<p>然后在 HPA 中引用：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">metrics:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">  <span class="attr">pods:</span></span><br><span class="line">    <span class="attr">metric:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">http_requests_total_per_second</span></span><br><span class="line">    <span class="attr">target:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">AverageValue</span></span><br><span class="line">      <span class="attr">averageValue:</span> <span class="number">500</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="behavior：精细控制扩缩行为"><a href="#behavior：精细控制扩缩行为" class="headerlink" title="behavior：精细控制扩缩行为"></a>behavior：精细控制扩缩行为</h2><p>从 Kubernetes 1.18 开始，HPA 支持通过 <code>behavior</code> 字段精细控制扩缩行为，这是生产环境非常实用的特性。</p>
+<h3 id="核心概念"><a href="#核心概念" class="headerlink" title="核心概念"></a>核心概念</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stabilizationWindowSeconds</code></td>
+<td>稳定窗口期，防止副本数频繁抖动</td>
+</tr>
+<tr>
+<td><code>policies</code></td>
+<td>扩缩策略列表，可以指定一次增减多少 Pod 或百分比</td>
+</tr>
+<tr>
+<td><code>selectPolicy</code></td>
+<td>多条策略的选择方式：<code>Max</code>、<code>Min</code>、<code>Disabled</code></td>
+</tr>
+</tbody></table>
+<h3 id="推荐配置策略"><a href="#推荐配置策略" class="headerlink" title="推荐配置策略"></a>推荐配置策略</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">behavior:</span></span><br><span class="line">  <span class="comment"># 扩容：快速响应</span></span><br><span class="line">  <span class="attr">scaleUp:</span></span><br><span class="line">    <span class="attr">stabilizationWindowSeconds:</span> <span class="number">30</span>    <span class="comment"># 30秒稳定窗口</span></span><br><span class="line">    <span class="attr">policies:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">      <span class="attr">value:</span> <span class="number">4</span>                       <span class="comment"># 每次最多增加4个Pod</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">60</span>              <span class="comment"># 60秒内执行一次</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Percent</span></span><br><span class="line">      <span class="attr">value:</span> <span class="number">100</span>                     <span class="comment"># 或每次翻倍</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">60</span></span><br><span class="line">    <span class="attr">selectPolicy:</span> <span class="string">Max</span>                <span class="comment"># 取更激进的那个</span></span><br><span class="line"></span><br><span class="line">  <span class="comment"># 缩容：保守回收</span></span><br><span class="line">  <span class="attr">scaleDown:</span></span><br><span class="line">    <span class="attr">stabilizationWindowSeconds:</span> <span class="number">300</span>  <span class="comment"># 5分钟稳定窗口，避免误缩</span></span><br><span class="line">    <span class="attr">policies:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line">      <span class="attr">value:</span> <span class="number">1</span>                       <span class="comment"># 每次只减少1个Pod</span></span><br><span class="line">      <span class="attr">periodSeconds:</span> <span class="number">120</span>             <span class="comment"># 120秒内执行一次</span></span><br><span class="line">    <span class="attr">selectPolicy:</span> <span class="string">Min</span>                <span class="comment"># 取更保守的那个</span></span><br></pre></td></tr></table></figure>
+
+<p>核心思想：<strong>扩容要快，缩容要慢</strong>。流量突增时要快速响应，流量下降时要缓慢回收，避免反复震荡。</p>
+<h2 id="常见踩坑与解决方案"><a href="#常见踩坑与解决方案" class="headerlink" title="常见踩坑与解决方案"></a>常见踩坑与解决方案</h2><h3 id="1-HPA-无法获取指标"><a href="#1-HPA-无法获取指标" class="headerlink" title="1. HPA 无法获取指标"></a>1. HPA 无法获取指标</h3><p><strong>症状</strong>：<code>kubectl get hpa</code> 显示 <code>&lt;unknown&gt;/50%</code></p>
+<p><strong>原因</strong>：Metrics Server 未安装或异常</p>
+<p><strong>排查</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 检查 Metrics Server Pod 状态</span></span><br><span class="line">kubectl get pods -n kube-system -l k8s-app=metrics-server</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Metrics Server 日志</span></span><br><span class="line">kubectl logs -n kube-system -l k8s-app=metrics-server</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-扩容速度慢"><a href="#2-扩容速度慢" class="headerlink" title="2. 扩容速度慢"></a>2. 扩容速度慢</h3><p><strong>原因</strong>：默认的稳定窗口期是 300 秒（5分钟），对于突发流量来说太慢。</p>
+<p><strong>解决</strong>：通过 <code>behavior.scaleUp.stabilizationWindowSeconds</code> 缩短窗口期，同时调整 <code>policies</code>。</p>
+<h3 id="3-缩容后服务抖动"><a href="#3-缩容后服务抖动" class="headerlink" title="3. 缩容后服务抖动"></a>3. 缩容后服务抖动</h3><p><strong>原因</strong>：缩容过快，被缩掉的 Pod 可能还持有活跃连接。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>增大 <code>scaleDown.stabilizationWindowSeconds</code>（如 300-600 秒）</li>
+<li>配合 <code>preStop</code> 钩子实现优雅下线</li>
+<li>结合 PDB（PodDisruptionBudget）控制最小可用副本</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">lifecycle:</span></span><br><span class="line">  <span class="attr">preStop:</span></span><br><span class="line">    <span class="attr">exec:</span></span><br><span class="line">      <span class="attr">command:</span> [<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;sleep 15&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-指标波动导致频繁扩缩"><a href="#4-指标波动导致频繁扩缩" class="headerlink" title="4. 指标波动导致频繁扩缩"></a>4. 指标波动导致频繁扩缩</h3><p><strong>原因</strong>：监控数据本身有波动，HPA 对此过于敏感。</p>
+<p><strong>解决</strong>：</p>
+<ul>
+<li>适当增大稳定窗口期</li>
+<li>降低 <code>policies</code> 中的扩缩幅度</li>
+<li>审视是否应该使用更平滑的指标（如 P99 而非 max）</li>
+</ul>
+<h3 id="5-多个-HPA-冲突"><a href="#5-多个-HPA-冲突" class="headerlink" title="5. 多个 HPA 冲突"></a>5. 多个 HPA 冲突</h3><p><strong>原因</strong>：对同一个 Deployment 创建了多个 HPA。</p>
+<p><strong>解决</strong>：确保每个工作负载只有一个 HPA。如果需要多指标，在一个 HPA 中配置多个 <code>metrics</code>。</p>
+<h2 id="生产环境-Checklist"><a href="#生产环境-Checklist" class="headerlink" title="生产环境 Checklist"></a>生产环境 Checklist</h2><p>在将 HPA 投入生产之前，请逐项确认：</p>
+<ul>
+<li><input disabled="" type="checkbox"> Metrics Server 已安装且正常工作</li>
+<li><input disabled="" type="checkbox"> Pod 配置了合理的 <code>resources.requests</code>（HPA 依赖这个值计算百分比）</li>
+<li><input disabled="" type="checkbox"> <code>minReplicas</code> 能覆盖日常负载</li>
+<li><input disabled="" type="checkbox"> <code>maxReplicas</code> 不会超过集群资源上限</li>
+<li><input disabled="" type="checkbox"> 配置了 <code>behavior</code>，扩容快、缩容慢</li>
+<li><input disabled="" type="checkbox"> 配合 PDB 防止缩容过多影响可用性</li>
+<li><input disabled="" type="checkbox"> 配合 <code>preStop</code> 钩子实现优雅下线</li>
+<li><input disabled="" type="checkbox"> 监控 HPA 本身的扩缩事件（<code>kubectl get events --field-selector reason=ScalingReplicaSet</code>）</li>
+<li><input disabled="" type="checkbox"> 自定义指标需要 Prometheus Adapter 且指标可靠</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>HPA 是 Kubernetes 自动化运维的基石能力。它的核心逻辑并不复杂——根据指标算副本数，多了缩、少了扩——但生产使用中需要注意的细节不少：</p>
+<ol>
+<li><strong>Metrics Server 是前提</strong>，没有它 HPA 就是瞎子</li>
+<li><strong>资源 requests 是基准</strong>，设不好百分比就没意义</li>
+<li><strong>behavior 是调优关键</strong>，扩快缩慢是黄金法则</li>
+<li><strong>多指标取最大值</strong>，任何一个指标超标都会触发扩容</li>
+<li><strong>不要忘了 PDB 和优雅下线</strong>，否则缩容可能引发事故</li>
+</ol>
+<p>掌握 HPA，你的 K8s 集群就有了应对流量波动的自我调节能力，真正向自动化运维迈进一步。</p>
+<hr>
+<blockquote>
+<p>封面图片来源：<a href="https://images.unsplash.com/photo-1558494949-ef526b0042a0">Unsplash</a></p>
+</blockquote>
+]]></content>
+      <tags>
+        <tag>Kubernetes</tag>
+        <tag>运维</tag>
+        <tag>HPA</tag>
+        <tag>自动扩缩容</tag>
+      </tags>
+  </entry>
 </search>
